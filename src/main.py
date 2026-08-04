@@ -1,11 +1,11 @@
 from agent_core.sandbox.core import Sandbox, SandboxConfig
-from time import sleep
 
 
 def main():
     config = SandboxConfig()
     sandbox = Sandbox(config)
-    sleep(1)
+    print(sandbox.execute("x = 23232"))
+    print(sandbox.execute("print(x)"))
     sandbox.close()
 
 
