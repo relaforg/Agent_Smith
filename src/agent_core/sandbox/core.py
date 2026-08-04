@@ -2,6 +2,7 @@ import os
 import io
 import contextlib
 import traceback
+import resource
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable
@@ -26,6 +27,7 @@ class Sandbox:
             os.close(child_w)
             self.tx, self.rx = os.fdopen(parent_w, "w", buffering=1), \
                 os.fdopen(child_r, "r", buffering=1)
+            self._apply_limit()
             self._serve()
             os._exit(0)
         else:
@@ -33,6 +35,10 @@ class Sandbox:
             os.close(child_r)
             self.tx, self.rx = os.fdopen(child_w, "w", buffering=1), os.fdopen(
                 parent_r, "r", buffering=1)
+
+    def _apply_limit(self):
+        limit = self.config.max_memory_mb * 1024 * 1024
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
 
     def _serve(self) -> None:
         while 1:
@@ -44,15 +50,22 @@ class Sandbox:
                 break
             elif packet.type == "execute" and packet.data is not None:
                 error = None
+                memory_exceeded = False
                 out, err = io.StringIO(), io.StringIO()
                 try:
                     with contextlib.redirect_stdout(out), \
                             contextlib.redirect_stderr(err):
                         exec(packet.data, self.namespace)
+                except MemoryError:
+                    error, memory_exceeded = traceback.format_exc(), True
                 except Exception:
                     error = traceback.format_exc()
                 result = ExecutionResult(
-                    stdout=out.getvalue(), stderr=err.getvalue(), error=error)
+                    stdout=out.getvalue(),
+                    stderr=err.getvalue(),
+                    error=error,
+                    memory_exceeded=memory_exceeded
+                )
                 self._send(
                     Packet(type="result", data=result.model_dump_json()))
 

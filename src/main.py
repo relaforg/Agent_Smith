@@ -4,8 +4,7 @@ from agent_core.sandbox.core import Sandbox, SandboxConfig
 def main():
     config = SandboxConfig()
     sandbox = Sandbox(config)
-    print(sandbox.execute("x = 23232"))
-    print(sandbox.execute("print(x)"))
+    print(sandbox.execute("b'x' * (2**40)"))
     sandbox.close()
 
 
