@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Literal, Optional, Protocol
-
 from pydantic import BaseModel, Field
 
 
