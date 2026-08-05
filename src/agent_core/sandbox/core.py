@@ -3,28 +3,53 @@ import io
 import contextlib
 import traceback
 import resource
+import signal
+import sys
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
-from typing import Literal, Dict, Callable
+from typing import Literal, Dict, Callable, Any
+import builtins
 
 
 class Packet(BaseModel):
-    type: Literal["close", "execute", "tool_call", "result"] = Field(...)
+    type: Literal["close", "execute", "tool_call",
+                  "result", "tool_result"] = Field(...)
     data: str | None = Field(default=None)
 
 
+class ToolCallData(BaseModel):
+    name: str = Field(...)
+    args: tuple = Field(default_factory=tuple)
+    kwargs: dict = Field(default_factory=dict)
+
+
+class ToolResult(BaseModel):
+    stdout: str = Field(default="")
+    stderr: str = Field(default="")
+    value: Any = Field(default=None)
+    error_type: str | None = Field(default=None)
+    error_message: str | None = Field(default=None)
+    traceback: str | None = Field(default=None)
+
+
+def _timeout_handler(signum, frame):
+    raise TimeoutError("Sandbox timed out")
+
+
 class Sandbox:
-    def __init__(self, config: SandboxConfig) -> None:
-        self.namespace: Dict[str, Callable] = {}
+    def __init__(self, config: SandboxConfig,
+                 tools: Dict[str, Callable] | None = None) -> None:
+        self.tools = tools or {}
         self.config = config
 
     def __enter__(self) -> "Sandbox":
         parent_r, parent_w = os.pipe()
         child_r, child_w = os.pipe()
         self._pid = os.fork()
-        print("Child pid: ", self._pid)
 
         if self._pid == 0:
+            self.namespace = {n: self._make_proxy(n) for n in self.tools}
+            signal.signal(signal.SIGALRM, _timeout_handler)
             os.close(parent_r)
             os.close(child_w)
             self._tx, self._rx = os.fdopen(parent_w, "w", buffering=1), \
@@ -33,6 +58,7 @@ class Sandbox:
             self._serve()
             os._exit(0)
         else:
+            print("Child pid: ", self._pid)
             os.close(parent_w)
             os.close(child_r)
             self._tx, self._rx = os.fdopen(child_w, "w", buffering=1), \
@@ -43,23 +69,57 @@ class Sandbox:
         limit = self.config.max_memory_mb * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
 
+    def _make_proxy(self, name: str):
+        def proxy(*args, **kwargs):
+            self._send(Packet(
+                type="tool_call",
+                data=ToolCallData(
+                    name=name,
+                    args=args,
+                    kwargs=kwargs
+                ).model_dump_json()
+            ))
+            reply = Packet.model_validate_json(self._rx.readline())
+            result = ToolResult.model_validate_json(reply.data)
+            print(result.stdout, end="")
+            print(result.stderr, end="", file=sys.stderr)
+            if result.error_type is not None:
+                raise self._rebuild_error(result)
+            return result.value
+        return proxy
+
+    def _rebuild_error(self, result: ToolResult) -> Exception:
+        if result.error_type is None:
+            return RuntimeError(f"{result.error_message}")
+        cls = getattr(builtins, result.error_type, None)
+        if not (isinstance(cls, type) and issubclass(cls, Exception)):
+            cls = RuntimeError
+        return cls(f"{result.error_message}")
+
     def _exec_code(self, code: str) -> ExecutionResult:
         error = None
         memory_exceeded = False
+        timeout = False
         out, err = io.StringIO(), io.StringIO()
+
         try:
+            signal.alarm(5)
             with contextlib.redirect_stdout(out), \
                     contextlib.redirect_stderr(err):
                 exec(code, self.namespace)
+            signal.alarm(0)
         except MemoryError:
             error, memory_exceeded = traceback.format_exc(), True
+        except TimeoutError:
+            error, timeout = traceback.format_exc(), True
         except Exception:
             error = traceback.format_exc()
         return ExecutionResult(
             stdout=out.getvalue(),
             stderr=err.getvalue(),
             error=error,
-            memory_exceeded=memory_exceeded
+            memory_exceeded=memory_exceeded,
+            timed_out=timeout
         )
 
     def _serve(self) -> None:
@@ -78,15 +138,56 @@ class Sandbox:
     def _send(self, packet: Packet):
         self._tx.write(packet.model_dump_json() + "\n")
 
+    def _run_tool(self, data: ToolCallData) -> ToolResult:
+        f = self.tools.get(data.name)
+        if f is None:
+            e = NameError(data.name, "does not exists")
+            return ToolResult(
+                error_type=type(e).__name__,
+                error_message=str(e),
+                traceback=traceback.format_exc()
+            )
+
+        out, err = io.StringIO(), io.StringIO()
+
+        try:
+            with contextlib.redirect_stdout(out), \
+                    contextlib.redirect_stderr(err):
+                value = f(*data.args, **data.kwargs)
+        except BaseException as e:
+            return ToolResult(
+                stdout=out.getvalue(),
+                stderr=err.getvalue(),
+                error_type=type(e).__name__,
+                error_message=str(e),
+                traceback=traceback.format_exc()
+            )
+
+        return ToolResult(
+            stdout=out.getvalue(),
+            stderr=err.getvalue(),
+            value=value
+        )
+
     def execute(self, code: str) -> ExecutionResult:
         if self._pid is None:
             raise RuntimeError(
                 "Sandbox must be used as `with Sandbox(cfg) as sb:`")
         self._send(Packet(type="execute", data=code))
-        packet = Packet.model_validate_json(self._rx.readline())
-        if packet.type != "result":
-            raise IOError("Invalid packet type")
-        return ExecutionResult.model_validate_json(packet.data)
+        while 1:
+            packet = Packet.model_validate_json(self._rx.readline())
+            if packet.type == "result":
+                return ExecutionResult.model_validate_json(packet.data)
+            elif packet.type == "tool_call":
+                if packet.data is None:
+                    self._send(Packet(type="tool_result"))
+                    continue
+                self._send(Packet(
+                    type="tool_result",
+                           data=self._run_tool(
+                               ToolCallData.model_validate_json(packet.data)
+                           ).model_dump_json()
+                           ))
 
     def get_manual(self) -> str:
         return ""
