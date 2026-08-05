@@ -43,6 +43,25 @@ class Sandbox:
         limit = self.config.max_memory_mb * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
 
+    def _exec_code(self, code: str) -> ExecutionResult:
+        error = None
+        memory_exceeded = False
+        out, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), \
+                    contextlib.redirect_stderr(err):
+                exec(code, self.namespace)
+        except MemoryError:
+            error, memory_exceeded = traceback.format_exc(), True
+        except Exception:
+            error = traceback.format_exc()
+        return ExecutionResult(
+            stdout=out.getvalue(),
+            stderr=err.getvalue(),
+            error=error,
+            memory_exceeded=memory_exceeded
+        )
+
     def _serve(self) -> None:
         while 1:
             packet: Packet = Packet.model_validate_json(
@@ -52,23 +71,7 @@ class Sandbox:
                 self._rx.close()
                 break
             elif packet.type == "execute" and packet.data is not None:
-                error = None
-                memory_exceeded = False
-                out, err = io.StringIO(), io.StringIO()
-                try:
-                    with contextlib.redirect_stdout(out), \
-                            contextlib.redirect_stderr(err):
-                        exec(packet.data, self.namespace)
-                except MemoryError:
-                    error, memory_exceeded = traceback.format_exc(), True
-                except Exception:
-                    error = traceback.format_exc()
-                result = ExecutionResult(
-                    stdout=out.getvalue(),
-                    stderr=err.getvalue(),
-                    error=error,
-                    memory_exceeded=memory_exceeded
-                )
+                result = self._exec_code(packet.data)
                 self._send(
                     Packet(type="result", data=result.model_dump_json()))
 
