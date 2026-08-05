@@ -5,10 +5,10 @@ import traceback
 import resource
 import signal
 import sys
+import builtins
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
-import builtins
 
 
 class Packet(BaseModel):
@@ -32,8 +32,12 @@ class ToolResult(BaseModel):
     traceback: str | None = Field(default=None)
 
 
+class SandboxTimeoutError(BaseException):
+    pass
+
+
 def _timeout_handler(signum, frame):
-    raise TimeoutError("Sandbox timed out")
+    raise SandboxTimeoutError("Sandbox timed out")
 
 
 class Sandbox:
@@ -71,30 +75,36 @@ class Sandbox:
 
     def _make_proxy(self, name: str):
         def proxy(*args, **kwargs):
-            self._send(Packet(
-                type="tool_call",
-                data=ToolCallData(
-                    name=name,
-                    args=args,
-                    kwargs=kwargs
-                ).model_dump_json()
-            ))
-            reply = Packet.model_validate_json(self._rx.readline())
-            result = ToolResult.model_validate_json(reply.data)
-            print(result.stdout, end="")
-            print(result.stderr, end="", file=sys.stderr)
-            if result.error_type is not None:
-                raise self._rebuild_error(result)
+            remaining_time, _ = signal.setitimer(signal.ITIMER_REAL, 0)
+            if remaining_time <= 0:
+                raise SandboxTimeoutError("Sandbox timed out")
+            try:
+                self._send(Packet(
+                    type="tool_call",
+                    data=ToolCallData(
+                        name=name,
+                        args=args,
+                        kwargs=kwargs
+                    ).model_dump_json()
+                ))
+                reply = Packet.model_validate_json(self._rx.readline())
+                result = ToolResult.model_validate_json(reply.data)
+                print(result.stdout, end="")
+                print(result.stderr, end="", file=sys.stderr)
+                if result.error_type is not None:
+                    raise self._rebuild_error(result)
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, remaining_time)
             return result.value
         return proxy
 
     def _rebuild_error(self, result: ToolResult) -> Exception:
         if result.error_type is None:
-            return RuntimeError(f"{result.error_message}")
+            return RuntimeError(result.error_message)
         cls = getattr(builtins, result.error_type, None)
         if not (isinstance(cls, type) and issubclass(cls, Exception)):
             cls = RuntimeError
-        return cls(f"{result.error_message}")
+        return cls(result.error_message)
 
     def _exec_code(self, code: str) -> ExecutionResult:
         error = None
@@ -103,17 +113,19 @@ class Sandbox:
         out, err = io.StringIO(), io.StringIO()
 
         try:
-            signal.alarm(5)
+            signal.setitimer(signal.ITIMER_REAL,
+                             self.config.max_execution_time_seconds)
             with contextlib.redirect_stdout(out), \
                     contextlib.redirect_stderr(err):
                 exec(code, self.namespace)
-            signal.alarm(0)
         except MemoryError:
             error, memory_exceeded = traceback.format_exc(), True
-        except TimeoutError:
+        except SandboxTimeoutError:
             error, timeout = traceback.format_exc(), True
         except Exception:
             error = traceback.format_exc()
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
         return ExecutionResult(
             stdout=out.getvalue(),
             stderr=err.getvalue(),

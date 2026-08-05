@@ -2,17 +2,15 @@ from agent_core.sandbox.core import Sandbox, SandboxConfig
 
 
 def test():
-    # from time import sleep
-    # sleep(6)
-    return 3434
+    from time import sleep
+    sleep(6)
 
 
 def main():
-    config = SandboxConfig()
+    config = SandboxConfig(max_execution_time_seconds=2)
     with Sandbox(config, {"test": test}) as sandbox:
-        print(sandbox.execute("x = test()"))
+        print(sandbox.execute("test()"))
         print()
-        print(sandbox.execute("print(x)"))
 
 
 if __name__ == "__main__":
