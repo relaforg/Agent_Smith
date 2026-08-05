@@ -53,6 +53,7 @@ class Sandbox:
 
         if self._pid == 0:
             self.namespace = {n: self._make_proxy(n) for n in self.tools}
+            self.namespace["__builtins__"] = self._get_custom_builtins()
             signal.signal(signal.SIGALRM, _timeout_handler)
             os.close(parent_r)
             os.close(child_w)
@@ -68,6 +69,21 @@ class Sandbox:
             self._tx, self._rx = os.fdopen(child_w, "w", buffering=1), \
                 os.fdopen(parent_r, "r", buffering=1)
         return self
+
+    def _make_custom_import(self):
+        def _import(name: str, globals=None, locals=None, fromlist=(), level=0):
+            if name in self.config.authorized_imports:
+                builtins.__import__(name, globals, locals, fromlist, level)
+            else:
+                raise ImportError(f"{name} is not available in the sandbox")
+        return _import
+
+    def _get_custom_builtins(self):
+        builtin = dict(vars(builtins))
+        builtin["__import__"] = self._make_custom_import()
+        for key in ["eval", "exec", "compile", "input", "breakpoint"]:
+            builtin.pop(key)
+        return builtin
 
     def _apply_limit(self):
         limit = self.config.max_memory_mb * 1024 * 1024
