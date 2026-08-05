@@ -235,5 +235,8 @@ class SandboxProtocol(Protocol):
     def get_manual(self) -> str:
         ...
 
-    def close(self) -> None:
+    def __enter__(self):
+        ...
+
+    def __exit__(self, exc_type, exc, tb) -> None:
         ...

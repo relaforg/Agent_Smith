@@ -17,15 +17,17 @@ class Sandbox:
     def __init__(self, config: SandboxConfig) -> None:
         self.namespace: Dict[str, Callable] = {}
         self.config = config
+
+    def __enter__(self) -> "Sandbox":
         parent_r, parent_w = os.pipe()
         child_r, child_w = os.pipe()
-        self.pid = os.fork()
-        print("Child pid: ", self.pid)
+        self._pid = os.fork()
+        print("Child pid: ", self._pid)
 
-        if self.pid == 0:
+        if self._pid == 0:
             os.close(parent_r)
             os.close(child_w)
-            self.tx, self.rx = os.fdopen(parent_w, "w", buffering=1), \
+            self._tx, self._rx = os.fdopen(parent_w, "w", buffering=1), \
                 os.fdopen(child_r, "r", buffering=1)
             self._apply_limit()
             self._serve()
@@ -33,8 +35,9 @@ class Sandbox:
         else:
             os.close(parent_w)
             os.close(child_r)
-            self.tx, self.rx = os.fdopen(child_w, "w", buffering=1), os.fdopen(
-                parent_r, "r", buffering=1)
+            self._tx, self._rx = os.fdopen(child_w, "w", buffering=1), \
+                os.fdopen(parent_r, "r", buffering=1)
+        return self
 
     def _apply_limit(self):
         limit = self.config.max_memory_mb * 1024 * 1024
@@ -43,10 +46,10 @@ class Sandbox:
     def _serve(self) -> None:
         while 1:
             packet: Packet = Packet.model_validate_json(
-                self.rx.readline())
+                self._rx.readline())
             if packet.type == "close":
-                self.tx.close()
-                self.rx.close()
+                self._tx.close()
+                self._rx.close()
                 break
             elif packet.type == "execute" and packet.data is not None:
                 error = None
@@ -70,11 +73,14 @@ class Sandbox:
                     Packet(type="result", data=result.model_dump_json()))
 
     def _send(self, packet: Packet):
-        self.tx.write(packet.model_dump_json() + "\n")
+        self._tx.write(packet.model_dump_json() + "\n")
 
     def execute(self, code: str) -> ExecutionResult:
+        if self._pid is None:
+            raise RuntimeError(
+                "Sandbox must be used as `with Sandbox(cfg) as sb:`")
         self._send(Packet(type="execute", data=code))
-        packet = Packet.model_validate_json(self.rx.readline())
+        packet = Packet.model_validate_json(self._rx.readline())
         if packet.type != "result":
             raise IOError("Invalid packet type")
         return ExecutionResult.model_validate_json(packet.data)
@@ -82,8 +88,10 @@ class Sandbox:
     def get_manual(self) -> str:
         return ""
 
-    def close(self) -> None:
-        self._send(Packet(type="close"))
-        self.tx.close()
-        self.rx.close()
-        os.waitpid(self.pid, 0)
+    def __exit__(self, exc_type, exc, tb) -> None:
+        with contextlib.suppress(BrokenPipeError):
+            self._send(Packet(type="close"))
+        with contextlib.suppress(BrokenPipeError):
+            self._tx.close()
+        self._rx.close()
+        os.waitpid(self._pid, 0)

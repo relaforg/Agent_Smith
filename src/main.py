@@ -3,9 +3,8 @@ from agent_core.sandbox.core import Sandbox, SandboxConfig
 
 def main():
     config = SandboxConfig()
-    sandbox = Sandbox(config)
-    print(sandbox.execute("b'x' * (2**40)"))
-    sandbox.close()
+    with Sandbox(config) as sandbox:
+        print(sandbox.execute("print('Hello context')"))
 
 
 if __name__ == "__main__":
