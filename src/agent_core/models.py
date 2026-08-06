@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import List, Literal, Optional, Protocol
-
 from pydantic import BaseModel, Field
 
 
@@ -228,6 +227,15 @@ class ExecutionResult(BaseModel):
     timed_out: bool = False
     memory_exceeded: bool = False
 
+    def __str__(self) -> str:
+        parts = []
+        for label in ("stdout", "stderr", "error"):
+            if value := getattr(self, label):
+                parts.append(f"--- {label} ---\n{value.rstrip()}")
+        if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:
+            parts.append("flags: " + ", ".join(flags))
+        return "\n".join(parts) or "(empty result)"
+
 
 class SandboxProtocol(Protocol):
     def execute(self, code: str) -> ExecutionResult:
@@ -236,5 +244,8 @@ class SandboxProtocol(Protocol):
     def get_manual(self) -> str:
         ...
 
-    def close(self) -> None:
+    def __enter__(self):
+        ...
+
+    def __exit__(self, exc_type, exc, tb) -> None:
         ...
