@@ -7,6 +7,7 @@ import signal
 import sys
 import builtins
 import re
+import types
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
@@ -37,6 +38,30 @@ class SandboxTimeoutError(BaseException):
     pass
 
 
+class _ModuleProxy:
+    def __init__(self, module, config):
+        object.__setattr__(self, "_ModuleProxy__mod", module)
+        object.__setattr__(self, "_ModuleProxy__cfg", config)
+
+    def __getattribute__(self, attr: str):
+        if attr.startswith("_"):
+            raise AttributeError(attr)
+        mod = object.__getattribute__(self, "_ModuleProxy__mod")
+        value = getattr(mod, attr)
+        cfg = object.__getattribute__(self, "_ModuleProxy__cfg")
+        if isinstance(value, types.ModuleType):
+            for allowed in cfg.authorized_imports:
+                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"), value.__name__):
+                    return _ModuleProxy(value, cfg)
+            else:
+                raise ImportError(value)
+        else:
+            return value
+
+    def __setattr__(self, attr, value):
+        raise AttributeError("modules are read-only in the sandbox")
+
+
 def _timeout_handler(signum, frame):
     raise SandboxTimeoutError("Sandbox timed out")
 
@@ -53,6 +78,7 @@ class Sandbox:
         self._pid = os.fork()
 
         if self._pid == 0:
+            # sys.modules.clear()
             self.namespace = {n: self._make_proxy(n) for n in self.tools}
             self.namespace["__builtins__"] = self._get_custom_builtins()
             signal.signal(signal.SIGALRM, _timeout_handler)
@@ -74,26 +100,25 @@ class Sandbox:
     def _make_custom_import(self):
         def _import(name: str, globals=None, locals=None,
                     fromlist=(), level=0):
-            full_name = name
-            if fromlist is not None:
-                full_name = name + "." + fromlist[0]
             for allowed in self.config.authorized_imports:
-                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"),
-                                full_name):
-                    return builtins.__import__(name,
-                                               globals,
-                                               locals,
-                                               fromlist,
-                                               level)
-            else:
-                raise ImportError(
-                    f"{full_name} is not available in the sandbox")
+                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"), name):
+                    return _ModuleProxy(
+                        builtins.__import__(name,
+                                            globals,
+                                            locals,
+                                            fromlist,
+                                            level),
+                        self.config)
+            raise ImportError(
+                f"{name} is not available in the sandbox")
         return _import
 
     def _get_custom_builtins(self):
         builtin = dict(vars(builtins))
         builtin["__import__"] = self._make_custom_import()
-        for key in ["eval", "exec", "compile", "input", "breakpoint"]:
+        for key in ["eval", "exec", "compile", "input", "breakpoint",
+                    "getattr", "globals", "vars", "dir", "help", "exit",
+                    "quit"]:
             builtin.pop(key)
         return builtin
 
