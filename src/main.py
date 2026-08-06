@@ -8,7 +8,7 @@ def test():
 def main():
     config = SandboxConfig(max_execution_time_seconds=2)
     with Sandbox(config, {"test": test}) as sandbox:
-        print(sandbox.execute("import pydantic"))
+        print(sandbox.execute("from math import pi"))
         print()
 
 

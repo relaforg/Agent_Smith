@@ -6,6 +6,7 @@ import resource
 import signal
 import sys
 import builtins
+import re
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
@@ -71,11 +72,22 @@ class Sandbox:
         return self
 
     def _make_custom_import(self):
-        def _import(name: str, globals=None, locals=None, fromlist=(), level=0):
-            if name in self.config.authorized_imports:
-                builtins.__import__(name, globals, locals, fromlist, level)
+        def _import(name: str, globals=None, locals=None,
+                    fromlist=(), level=0):
+            full_name = name
+            if fromlist is not None:
+                full_name = name + "." + fromlist[0]
+            for allowed in self.config.authorized_imports:
+                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"),
+                                full_name):
+                    return builtins.__import__(name,
+                                               globals,
+                                               locals,
+                                               fromlist,
+                                               level)
             else:
-                raise ImportError(f"{name} is not available in the sandbox")
+                raise ImportError(
+                    f"{full_name} is not available in the sandbox")
         return _import
 
     def _get_custom_builtins(self):
