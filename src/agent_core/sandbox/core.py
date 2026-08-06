@@ -9,6 +9,7 @@ import builtins
 import re
 import types
 from agent_core.models import ExecutionResult, SandboxConfig
+import ast
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
 
@@ -38,6 +39,13 @@ class SandboxTimeoutError(BaseException):
     pass
 
 
+def _is_authorized_import(name: str, config: SandboxConfig) -> bool:
+    return any(
+        re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), name)
+        for pattern in config.authorized_imports
+    )
+
+
 class _ModuleProxy:
     def __init__(self, module, config):
         object.__setattr__(self, "_ModuleProxy__mod", module)
@@ -47,19 +55,53 @@ class _ModuleProxy:
         if attr.startswith("_"):
             raise AttributeError(attr)
         mod = object.__getattribute__(self, "_ModuleProxy__mod")
-        value = getattr(mod, attr)
         cfg = object.__getattribute__(self, "_ModuleProxy__cfg")
-        if isinstance(value, types.ModuleType):
-            for allowed in cfg.authorized_imports:
-                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"), value.__name__):
-                    return _ModuleProxy(value, cfg)
-            else:
-                raise ImportError(value)
-        else:
+        value = getattr(mod, attr)
+        if not isinstance(value, types.ModuleType):
             return value
+        if not _is_authorized_import(value.__name__, cfg):
+            raise ImportError(
+                f"{value.__name__} is not available in the sandbox")
+        return _ModuleProxy(value, cfg)
 
     def __setattr__(self, attr, value):
         raise AttributeError("modules are read-only in the sandbox")
+
+
+class _AstGuard(ast.NodeVisitor):
+    def __init__(self, config: SandboxConfig) -> None:
+        self.config = config
+
+    def visit_Attribute(self, node):
+        if node.attr.startswith("__"):
+            raise SyntaxError(f"Forbidden attribute: {node.attr}")
+        self.generic_visit(node)
+
+    def visit_Name(self, node):
+        if node.id.startswith("__") and node.id != "__name__" \
+                and node.id != "__main__":
+            raise SyntaxError(f"Forbidden name: {node.id}")
+        self.generic_visit(node)
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            if not _is_authorized_import(alias.name, self.config):
+                raise SyntaxError(
+                    f"{alias.name} is not available in the sandbox")
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        if node.level:
+            raise SyntaxError("Relative imports are not available "
+                              "in the sandbox")
+        if not _is_authorized_import(node.module, self.config):
+            raise SyntaxError(
+                f"{node.module} is not available in the sandbox")
+        for alias in node.names:
+            if alias.name == "*":
+                raise SyntaxError("Star imports are not available "
+                                  "in the sandbox")
+        self.generic_visit(node)
 
 
 def _timeout_handler(signum, frame):
@@ -100,17 +142,12 @@ class Sandbox:
     def _make_custom_import(self):
         def _import(name: str, globals=None, locals=None,
                     fromlist=(), level=0):
-            for allowed in self.config.authorized_imports:
-                if re.fullmatch(re.escape(allowed).replace(r"\*", ".*"), name):
-                    return _ModuleProxy(
-                        builtins.__import__(name,
-                                            globals,
-                                            locals,
-                                            fromlist,
-                                            level),
-                        self.config)
-            raise ImportError(
-                f"{name} is not available in the sandbox")
+            if not _is_authorized_import(name, self.config):
+                raise ImportError(
+                    f"{name} is not available in the sandbox")
+            return _ModuleProxy(
+                builtins.__import__(name, globals, locals, fromlist, level),
+                self.config)
         return _import
 
     def _get_custom_builtins(self):
@@ -168,9 +205,12 @@ class Sandbox:
         try:
             signal.setitimer(signal.ITIMER_REAL,
                              self.config.max_execution_time_seconds)
+            tree = ast.parse(code)
+            _AstGuard(self.config).visit(tree)
+            bytecode = compile(tree, "<sandbox>", "exec")
             with contextlib.redirect_stdout(out), \
                     contextlib.redirect_stderr(err):
-                exec(code, self.namespace)
+                exec(bytecode, self.namespace)
         except MemoryError:
             error, memory_exceeded = traceback.format_exc(), True
         except SandboxTimeoutError:
