@@ -8,10 +8,11 @@ import sys
 import builtins
 import re
 import types
-from agent_core.models import ExecutionResult, SandboxConfig
 import ast
+from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
+from pathlib import Path
 
 
 class Packet(BaseModel):
@@ -43,6 +44,12 @@ def _is_authorized_import(name: str, config: SandboxConfig) -> bool:
     return any(
         re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), name)
         for pattern in config.authorized_imports
+    )
+
+
+def _is_authorized_file(file: str, config: SandboxConfig) -> bool:
+    return any(
+        Path(file).is_relative_to(root) for root in config.allowed_directories
     )
 
 
@@ -120,7 +127,6 @@ class Sandbox:
         self._pid = os.fork()
 
         if self._pid == 0:
-            # sys.modules.clear()
             self.namespace = {n: self._make_proxy(n) for n in self.tools}
             self.namespace["__builtins__"] = self._get_custom_builtins()
             signal.signal(signal.SIGALRM, _timeout_handler)
@@ -150,12 +156,33 @@ class Sandbox:
                 self.config)
         return _import
 
+    def _make_custom_open(self):
+        def _open(file, mode='r', buffering=-1, encoding=None, errors=None,
+                  newline=None, closefd=True, opener=None):
+            if isinstance(file, int):
+                raise PermissionError(
+                    "Cannot open int fd directly in the sandbox")
+            if isinstance(file, bytes):
+                raise PermissionError(
+                    "Cannot open bytes directly in the sandbox")
+            if not os.path.isabs(file):
+                raise PermissionError(
+                    "Only absolute path are accepted in the sandbox")
+            file = os.path.realpath(file)
+            if not _is_authorized_file(file, self.config):
+                raise PermissionError(
+                    f"{file} access is forbidden in sandbox")
+            return builtins.open(file, mode, buffering, encoding,
+                                 errors, newline, closefd, opener)
+        return _open
+
     def _get_custom_builtins(self):
         builtin = dict(vars(builtins))
         builtin["__import__"] = self._make_custom_import()
+        builtin["open"] = self._make_custom_open()
         for key in ["eval", "exec", "compile", "input", "breakpoint",
                     "getattr", "globals", "vars", "dir", "help", "exit",
-                    "quit"]:
+                    "quit", "copyright", "credits", "license"]:
             builtin.pop(key)
         return builtin
 

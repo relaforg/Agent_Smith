@@ -6,9 +6,11 @@ def test():
 
 
 def main():
-    config = SandboxConfig(max_execution_time_seconds=2)
+    config = SandboxConfig(max_execution_time_seconds=2,
+                           allowed_directories=["/home/relaforg/Documents/Agent_Smith/tmp"])
     with Sandbox(config, {"test": test}) as sandbox:
-        print(sandbox.execute("__import__()"))
+        print(sandbox.execute(
+            "with open('/home/relaforg/Documents/Agent_Smith/tmp/test', 'w') as file:\n\tpass"))
         print()
 
 
