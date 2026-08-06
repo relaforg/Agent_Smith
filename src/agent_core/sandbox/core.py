@@ -9,6 +9,7 @@ import builtins
 import re
 import types
 import ast
+import inspect
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
@@ -133,7 +134,7 @@ class Sandbox:
         if self._pid == 0:
             self.namespace = {n: self._make_proxy(n) for n in self.tools}
             self.namespace["__builtins__"] = self._get_custom_builtins()
-            self.namespace["final_answer"] = self._final_answer
+            self.namespace["final_answer"] = self.final_answer
             signal.signal(signal.SIGALRM, _timeout_handler)
             os.close(parent_r)
             os.close(child_w)
@@ -150,7 +151,8 @@ class Sandbox:
                 os.fdopen(parent_r, "r", buffering=1)
         return self
 
-    def _final_answer(self, answer: str) -> None:
+    def final_answer(self, answer: str) -> None:
+        """Indicate the end of agentic loop"""
         raise FinalAnswer(answer)
 
     def _make_custom_import(self):
@@ -333,8 +335,18 @@ class Sandbox:
                            ).model_dump_json()
                            ))
 
+    def _describe(self, f: Callable) -> str:
+        description = {
+            "name": f.__name__,
+            "signature": inspect.signature(f).__str__(),
+            "documentation": inspect.getdoc(f) or "(no documentation)"
+        }
+        return description.__str__()
+
     def get_manual(self) -> str:
-        return ""
+        manual = [self._describe(f) for f in self.tools.values()]
+        manual.append(self._describe(self.final_answer))
+        return "\n".join(manual)
 
     def __exit__(self, exc_type, exc, tb) -> None:
         with contextlib.suppress(BrokenPipeError):
