@@ -229,7 +229,7 @@ class ExecutionResult(BaseModel):
 
     def __str__(self) -> str:
         parts = []
-        for label in ("stdout", "stderr", "error"):
+        for label in ("stdout", "stderr", "error", "final_answer"):
             if value := getattr(self, label):
                 parts.append(f"--- {label} ---\n{value.rstrip()}")
         if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:

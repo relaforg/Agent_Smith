@@ -40,6 +40,10 @@ class SandboxTimeoutError(BaseException):
     pass
 
 
+class FinalAnswer(BaseException):
+    pass
+
+
 def _is_authorized_import(name: str, config: SandboxConfig) -> bool:
     return any(
         re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), name)
@@ -129,6 +133,7 @@ class Sandbox:
         if self._pid == 0:
             self.namespace = {n: self._make_proxy(n) for n in self.tools}
             self.namespace["__builtins__"] = self._get_custom_builtins()
+            self.namespace["final_answer"] = self._final_answer
             signal.signal(signal.SIGALRM, _timeout_handler)
             os.close(parent_r)
             os.close(child_w)
@@ -144,6 +149,9 @@ class Sandbox:
             self._tx, self._rx = os.fdopen(child_w, "w", buffering=1), \
                 os.fdopen(parent_r, "r", buffering=1)
         return self
+
+    def _final_answer(self, answer: str) -> None:
+        raise FinalAnswer(answer)
 
     def _make_custom_import(self):
         def _import(name: str, globals=None, locals=None,
@@ -228,6 +236,7 @@ class Sandbox:
         memory_exceeded = False
         timeout = False
         out, err = io.StringIO(), io.StringIO()
+        final_answer = None
 
         try:
             signal.setitimer(signal.ITIMER_REAL,
@@ -242,6 +251,8 @@ class Sandbox:
             error, memory_exceeded = traceback.format_exc(), True
         except SandboxTimeoutError:
             error, timeout = traceback.format_exc(), True
+        except FinalAnswer as e:
+            final_answer = e.__str__()
         except Exception:
             error = traceback.format_exc()
         finally:
@@ -251,7 +262,8 @@ class Sandbox:
             stderr=err.getvalue(),
             error=error,
             memory_exceeded=memory_exceeded,
-            timed_out=timeout
+            timed_out=timeout,
+            final_answer=final_answer
         )
 
     def _serve(self) -> None:
