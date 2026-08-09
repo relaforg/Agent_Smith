@@ -144,7 +144,7 @@ class Sandbox:
             self._serve()
             os._exit(0)
         else:
-            print("Child pid: ", self._pid)
+            # print("Child pid: ", self._pid)
             os.close(parent_w)
             os.close(child_r)
             self._tx, self._rx = os.fdopen(child_w, "w", buffering=1), \
@@ -269,17 +269,20 @@ class Sandbox:
         )
 
     def _serve(self) -> None:
-        while 1:
-            packet: Packet = Packet.model_validate_json(
-                self._rx.readline())
-            if packet.type == "close":
-                self._tx.close()
-                self._rx.close()
-                break
-            elif packet.type == "execute" and packet.data is not None:
-                result = self._exec_code(packet.data)
-                self._send(
-                    Packet(type="result", data=result.model_dump_json()))
+        try:
+            while 1:
+                packet: Packet = Packet.model_validate_json(
+                    self._rx.readline())
+                if packet.type == "close":
+                    self._tx.close()
+                    self._rx.close()
+                    break
+                elif packet.type == "execute" and packet.data is not None:
+                    result = self._exec_code(packet.data)
+                    self._send(
+                        Packet(type="result", data=result.model_dump_json()))
+        except KeyboardInterrupt:
+            pass
 
     def _send(self, packet: Packet):
         self._tx.write(packet.model_dump_json() + "\n")
