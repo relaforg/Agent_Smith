@@ -1,11 +1,22 @@
 import platform
 import readline
+from argparse import ArgumentParser
 from agent_core.sandbox.core import Sandbox, SandboxConfig
 
 HISTORY_FILE = ".agent_smith_history"
 
 
 def main():
+    parser = ArgumentParser()
+
+    mcp_group = parser.add_mutually_exclusive_group()
+    mcp_group.add_argument("--mcp-stdio", type=str)
+    mcp_group.add_argument("--mcp-server", type=str)
+
+    parser.add_argument("sandbox_template", nargs="?", default=None)
+
+    args = parser.parse_args()
+
     config = SandboxConfig(max_execution_time_seconds=2,
                            allowed_directories=["/home/relaforg/Documents/Agent_Smith/tmp"])
 
