@@ -10,7 +10,3 @@ def main():
                            allowed_directories=["/home/relaforg/Documents/Agent_Smith/tmp"])
     with Sandbox(config, {"test": test}) as sandbox:
         print(sandbox.get_manual())
-
-
-if __name__ == "__main__":
-    main()
