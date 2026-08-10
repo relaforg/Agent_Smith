@@ -4,27 +4,39 @@ import json
 import shlex
 import anyio
 import inspect
+import contextlib
+import signal
 from argparse import ArgumentParser
 from agent_core.sandbox.core import Sandbox, SandboxConfig
 from mcp import Client, stdio_client, StdioServerParameters, types
 from mcp.client import Transport
 from typing import Callable
+from pydantic import ValidationError
 
 HISTORY_FILE = ".agent_smith_history"
 
 
-def extract_config(path: str) -> SandboxConfig:
+def extract_config(path: str) -> SandboxConfig | None:
     try:
         with open(path, "r") as file:
             return SandboxConfig.model_validate(json.load(file))
-    except Exception:
-        return SandboxConfig()
+    except FileNotFoundError:
+        print(f"{path} does not exists")
+    except PermissionError:
+        print(f"{path} is not readable")
+    except json.JSONDecodeError:
+        print(f"{path} does not contain valid JSON")
+    except ValidationError as e:
+        print(e)
+    return None
 
 
-def get_target(args) -> str | Transport:
+def get_target(args) -> str | Transport | None:
     if args.mcp_server:
         return args.mcp_server
 
+    if args.mcp_stdio is None:
+        return None
     command, *rest = shlex.split(args.mcp_stdio)
     return stdio_client(StdioServerParameters(command=command, args=rest))
 
@@ -60,20 +72,25 @@ def _make_proxy(client: Client, tool: types.Tool) -> Callable:
 
 
 def repl_loop(sandbox: Sandbox):
+    print(f"Sandbox REPL (python {platform.python_version()})")
     while True:
-        code = input(">>> ")
+        try:
+            code = input(">>> ")
+        except EOFError:
+            print()
+            return 0
         if code == "exit":
             return 0
         print(sandbox.execute(code))
 
 
 async def run():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     readline.set_history_length(1000)
     try:
         readline.read_history_file(HISTORY_FILE)
     except FileNotFoundError:
         pass
-    print(f"Sandbox REPL (python {platform.python_version()})")
 
     parser = ArgumentParser()
 
@@ -85,21 +102,23 @@ async def run():
 
     args = parser.parse_args()
 
-    config = SandboxConfig() if args.sandbox_template is None else extract_config(
-        args.sandbox_template)
+    config = SandboxConfig() if args.sandbox_template is None \
+        else extract_config(args.sandbox_template)
+    if config is None:
+        exit(1)
 
     try:
-        async with Client(get_target(args)) as client:
-            tools = {t.name: _make_proxy(client, t) for t in (await client.list_tools()).tools}
-            from pprint import pprint
-            pprint(tools)
+        target = get_target(args)
+        client_ctx = Client(
+            target) if target is not None else contextlib.nullcontext()
+        async with client_ctx as client:
+            tools = {} if client is None else {
+                t.name: _make_proxy(client, t) for t in (
+                    await client.list_tools()).tools
+            }
 
             with Sandbox(config, tools) as sandbox:
                 return await anyio.to_thread.run_sync(repl_loop, sandbox)
-    except KeyboardInterrupt:
-        return 130
-    except EOFError:
-        return 0
     finally:
         readline.write_history_file(HISTORY_FILE)
 

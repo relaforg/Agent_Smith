@@ -45,6 +45,10 @@ class FinalAnswer(BaseException):
     pass
 
 
+class SandboxDied(Exception):
+    pass
+
+
 def _is_authorized_import(name: str, config: SandboxConfig) -> bool:
     return any(
         re.fullmatch(re.escape(pattern).replace(r"\*", ".*"), name)
@@ -125,6 +129,7 @@ class Sandbox:
                  tools: Dict[str, Callable] | None = None) -> None:
         self.tools = tools or {}
         self.config = config
+        self._pid = None
 
     def __enter__(self) -> "Sandbox":
         parent_r, parent_w = os.pipe()
@@ -132,17 +137,23 @@ class Sandbox:
         self._pid = os.fork()
 
         if self._pid == 0:
-            self.namespace = {n: self._make_proxy(n) for n in self.tools}
-            self.namespace["__builtins__"] = self._get_custom_builtins()
-            self.namespace["final_answer"] = self.final_answer
-            signal.signal(signal.SIGALRM, _timeout_handler)
-            os.close(parent_r)
-            os.close(child_w)
-            self._tx, self._rx = os.fdopen(parent_w, "w", buffering=1), \
-                os.fdopen(child_r, "r", buffering=1)
-            self._apply_limit()
-            self._serve()
-            os._exit(0)
+            try:
+                self.namespace = {n: self._make_proxy(n) for n in self.tools}
+                self.namespace["__builtins__"] = self._get_custom_builtins()
+                self.namespace["final_answer"] = self.final_answer
+                signal.signal(signal.SIGALRM, _timeout_handler)
+                signal.signal(signal.SIGINT, signal.SIG_IGN)
+                os.close(parent_r)
+                os.close(child_w)
+                self._tx, self._rx = os.fdopen(parent_w, "w", buffering=1), \
+                    os.fdopen(child_r, "r", buffering=1)
+                self._apply_limit()
+                self._serve()
+            except BaseException:
+                traceback.print_exc()
+                os._exit(1)
+            finally:
+                os._exit(0)
         else:
             # print("Child pid: ", self._pid)
             os.close(parent_w)
@@ -248,11 +259,17 @@ class Sandbox:
             bytecode = compile(tree, "<sandbox>", "exec")
             with contextlib.redirect_stdout(out), \
                     contextlib.redirect_stderr(err):
-                exec(bytecode, self.namespace)
+                signal.signal(signal.SIGINT, signal.default_int_handler)
+                try:
+                    exec(bytecode, self.namespace)
+                finally:
+                    signal.signal(signal.SIGINT, signal.SIG_IGN)
         except MemoryError:
             error, memory_exceeded = traceback.format_exc(), True
         except SandboxTimeoutError:
             error, timeout = traceback.format_exc(), True
+        except (KeyboardInterrupt, SystemExit):
+            error = traceback.format_exc()
         except FinalAnswer as e:
             final_answer = e.__str__()
         except Exception:
@@ -269,23 +286,35 @@ class Sandbox:
         )
 
     def _serve(self) -> None:
-        try:
-            while 1:
-                packet: Packet = Packet.model_validate_json(
-                    self._rx.readline())
-                if packet.type == "close":
-                    self._tx.close()
-                    self._rx.close()
-                    break
-                elif packet.type == "execute" and packet.data is not None:
-                    result = self._exec_code(packet.data)
-                    self._send(
-                        Packet(type="result", data=result.model_dump_json()))
-        except KeyboardInterrupt:
-            pass
+        while 1:
+            line = self._rx.readline()
+            if not line:
+                break
+            packet: Packet = Packet.model_validate_json(line)
+            if packet.type == "close":
+                self._tx.close()
+                self._rx.close()
+                break
+            elif packet.type == "execute":
+                result = self._exec_code(packet.data) if packet.data is not None else ExecutionResult(
+                    error="empty execute packet")
+                self._send(
+                    Packet(type="result", data=result.model_dump_json()))
+            else:
+                self._send(Packet(type="result", data=ExecutionResult(
+                    error="invalid packet type").model_dump_json()))
 
     def _send(self, packet: Packet):
-        self._tx.write(packet.model_dump_json() + "\n")
+        try:
+            self._tx.write(packet.model_dump_json() + "\n")
+        except (BrokenPipeError, ValueError) as e:
+            raise SandboxDied("sandbox pipe is closed") from e
+
+    def _recv(self) -> Packet:
+        line = self._rx.readline()
+        if not line:
+            raise SandboxDied("sandbox process terminated unexpectedly")
+        return Packet.model_validate_json(line)
 
     def _run_tool(self, data: ToolCallData) -> ToolResult:
         f = self.tools.get(data.name)
@@ -324,19 +353,32 @@ class Sandbox:
                 "Sandbox must be used as `with Sandbox(cfg) as sb:`")
         self._send(Packet(type="execute", data=code))
         while 1:
-            packet = Packet.model_validate_json(self._rx.readline())
+            packet = self._recv()
             if packet.type == "result":
-                return ExecutionResult.model_validate_json(packet.data)
-            elif packet.type == "tool_call":
                 if packet.data is None:
-                    self._send(Packet(type="tool_result"))
-                    continue
-                self._send(Packet(
-                    type="tool_result",
-                           data=self._run_tool(
-                               ToolCallData.model_validate_json(packet.data)
-                           ).model_dump_json()
-                           ))
+                    raise SandboxDied("sandbox returned an empty result")
+                return ExecutionResult.model_validate_json(packet.data)
+            if packet.type != "tool_call":
+                raise SandboxDied(f"unexpected packet type: {packet.type}")
+            self._send(Packet(type="tool_result",
+                              data=self._answer_tool_call(packet.data)))
+
+    def _answer_tool_call(self, data: str | None) -> str:
+        try:
+            if data is None:
+                raise ValueError("malformed tool_call packet")
+            result = self._run_tool(ToolCallData.model_validate_json(data))
+        except Exception as e:
+            result = ToolResult(error_type=type(
+                e).__name__, error_message=str(e))
+
+        try:
+            return result.model_dump_json()
+        except Exception as e:
+            return ToolResult(
+                error_type="TypeError",
+                error_message=f"tool result is not serializable: {e}"
+            ).model_dump_json()
 
     def _describe(self, f: Callable) -> str:
         description = {
