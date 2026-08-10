@@ -44,7 +44,7 @@ def find_references(name: str, filepath: str, line: int) -> str:
 @mcp.tool()
 def run_tests():
     """Execute the evaluation script."""
-    ...
+    return "dfdfdf"
 
 
 @mcp.tool()
