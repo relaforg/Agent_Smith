@@ -17,18 +17,29 @@ from pydantic import ValidationError
 HISTORY_FILE = ".agent_smith_history"
 
 
+def _format_validation_error(path: str, e: ValidationError) -> str:
+    lines = [f"{path}: {e.error_count()} invalid field(s)"]
+    for err in e.errors(include_url=False):
+        loc = ".".join(str(part) for part in err["loc"]) or "(root)"
+        got = repr(err["input"])
+        if len(got) > 80:
+            got = got[:77] + "..."
+        lines.append(f"\t{loc}: {err['msg']} (got: {got})")
+    return "\n".join(lines)
+
+
 def extract_config(path: str) -> SandboxConfig | None:
     try:
         with open(path, "r") as file:
             return SandboxConfig.model_validate(json.load(file))
     except FileNotFoundError:
-        print(f"{path} does not exists")
+        print(f"{path} does not exists", file=sys.stderr)
     except PermissionError:
-        print(f"{path} is not readable")
+        print(f"{path} is not readable", file=sys.stderr)
     except json.JSONDecodeError:
-        print(f"{path} does not contain valid JSON")
+        print(f"{path} does not contain valid JSON", file=sys.stderr)
     except ValidationError as e:
-        print(e)
+        print(_format_validation_error(path, e), file=sys.stderr)
     return None
 
 

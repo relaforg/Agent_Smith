@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Literal, Optional, Protocol
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SandboxConfig(BaseModel):
@@ -9,6 +9,7 @@ class SandboxConfig(BaseModel):
     Uses allowlist approach: only imports in authorized_imports are
     allowed. Everything else is blocked by default.
     """
+    model_config = ConfigDict(extra="forbid")
     authorized_imports: List[str] = Field(default_factory=lambda: [
         "math", "math.*",
         "collections", "collections.*",
