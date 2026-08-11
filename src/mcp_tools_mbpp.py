@@ -1,13 +1,109 @@
+import os
+import tarfile
+import io
+import atexit
+import contextlib
+import signal
+import sys
+import docker
+import json
 from mcp.server import MCPServer
+from agent_core.models import MBPPTaskInput
+from pathlib import Path
 
+# Every container we create carries these labels, so a run that was
+# killed before it could clean up can be swept on the next start.
+LABEL = "agent-smith"
+LABELS = {LABEL: "mbpp", f"{LABEL}.pid": str(os.getpid())}
+
+TASK = MBPPTaskInput.model_validate_json(Path(
+    os.environ["MBPP_TASK_FILE"]).read_text()) if os.environ.get(
+    "MBPP_TASK_FILE") else None
 
 mcp = MCPServer("mbpp_mcp")
 
+client = docker.from_env()
+
+
+def _is_alive(pid: str) -> bool:
+    """Tell whether the process that created a container still runs."""
+    try:
+        os.kill(int(pid), 0)
+    except (ProcessLookupError, ValueError, OverflowError):
+        return False
+    except PermissionError:
+        return True  # alive, simply owned by another user
+    return True
+
+
+def _sweep_orphans() -> None:
+    """Remove containers whose creating process is gone.
+
+    Checking the pid matters: several agents may run at the same time,
+    and a blind sweep on the label would delete a sibling's container.
+    """
+    with contextlib.suppress(docker.errors.APIError):
+        stale = client.containers.list(all=True,
+                                       filters={"label": f"{LABEL}=mbpp"})
+    for old in stale:
+        if not _is_alive(old.labels.get(f"{LABEL}.pid", "")):
+            with contextlib.suppress(docker.errors.APIError):
+                old.remove(force=True)
+
+
+_sweep_orphans()
+
+c = client.containers.create(
+    "python:3.11-slim", command="tail -f /dev/null", detach=True,
+    network_disabled=True, mem_limit="128m",
+    cpu_period=100000, cpu_quota=50000, labels=LABELS
+)
+c.start()
+
+
+def _close() -> None:
+    """Delete the container. Safe to call twice, never raises.
+
+    An exception here would mask whatever error caused the shutdown, so
+    every docker failure is swallowed: the sweep above is the fallback.
+    """
+    with contextlib.suppress(docker.errors.APIError):
+        c.remove(force=True)
+
+
+# Covers a normal exit: the REPL closing stdin, mcp.run() returning, an
+# unhandled exception, or sys.exit().
+atexit.register(_close)
+
+# SIGTERM kills the interpreter outright: no atexit, no finally. Turning
+# it into a SystemExit puts us back on the normal shutdown path.
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+
+
+def put_file(container, path: str, content: str) -> None:
+    data, buf = content.encode(), io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo(name=os.path.basename(path))
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    buf.seek(0)
+    container.put_archive(os.path.dirname(path) or "/", buf)
+
 
 @mcp.tool()
-def run_tests():
-    return ""
+def run_tests(code: str) -> str:
+    if TASK is None:
+        return "No task selected"
+    put_file(c, "/payload.json", json.dumps({
+        "source": code + "\n" + "\n".join(TASK.test_imports),
+        "tests": TASK.test_list
+    }))
+    res = c.exec_run(["timeout", "-s", "KILL", "10",
+                     "python", "/runner.py", "/payload.json"])
+    return res
 
 
 if __name__ == "__main__":
-    mcp.run()
+    put_file(c, "/runner.py", Path(__file__).with_name("runner.py").read_text())
+    print(run_tests("print('test')"))
+    # mcp.run()
