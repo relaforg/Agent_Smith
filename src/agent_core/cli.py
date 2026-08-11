@@ -6,8 +6,9 @@ import anyio
 import inspect
 import contextlib
 import signal
+import sys
 from argparse import ArgumentParser
-from agent_core.sandbox.core import Sandbox, SandboxConfig
+from agent_core.sandbox.core import Sandbox, SandboxConfig, SandboxDied
 from mcp import Client, stdio_client, StdioServerParameters, types
 from mcp.client import Transport
 from typing import Callable
@@ -37,7 +38,13 @@ def get_target(args) -> str | Transport | None:
 
     if args.mcp_stdio is None:
         return None
-    command, *rest = shlex.split(args.mcp_stdio)
+    try:
+        argv = shlex.split(args.mcp_stdio)
+    except ValueError as e:
+        raise SystemExit(f"--mcp-stdio: {e}")
+    if not argv:
+        raise SystemExit("--mcp-stdio: empty command")
+    command, *rest = argv
     return stdio_client(StdioServerParameters(command=command, args=rest))
 
 
@@ -81,7 +88,11 @@ def repl_loop(sandbox: Sandbox):
             return 0
         if code == "exit":
             return 0
-        print(sandbox.execute(code))
+        try:
+            print(sandbox.execute(code))
+        except SandboxDied as e:
+            print(f"sandbox died: {e}", file=sys.stderr)
+            return 1
 
 
 async def run():
@@ -89,7 +100,7 @@ async def run():
     readline.set_history_length(1000)
     try:
         readline.read_history_file(HISTORY_FILE)
-    except FileNotFoundError:
+    except (OSError, UnicodeDecodeError):
         pass
 
     parser = ArgumentParser()
@@ -105,7 +116,7 @@ async def run():
     config = SandboxConfig() if args.sandbox_template is None \
         else extract_config(args.sandbox_template)
     if config is None:
-        exit(1)
+        return 1
 
     try:
         target = get_target(args)
@@ -119,8 +130,12 @@ async def run():
 
             with Sandbox(config, tools) as sandbox:
                 return await anyio.to_thread.run_sync(repl_loop, sandbox)
+    except Exception as e:
+        print(f"startup failed: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
     finally:
-        readline.write_history_file(HISTORY_FILE)
+        with contextlib.suppress(OSError):
+            readline.write_history_file(HISTORY_FILE)
 
 
 def main():

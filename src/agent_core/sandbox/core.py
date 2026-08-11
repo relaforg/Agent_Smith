@@ -10,6 +10,7 @@ import re
 import types
 import ast
 import inspect
+import time
 from agent_core.models import ExecutionResult, SandboxConfig
 from pydantic import BaseModel, Field
 from typing import Literal, Dict, Callable, Any
@@ -204,12 +205,15 @@ class Sandbox:
         for key in ["eval", "exec", "compile", "input", "breakpoint",
                     "getattr", "globals", "vars", "dir", "help", "exit",
                     "quit", "copyright", "credits", "license"]:
-            builtin.pop(key)
+            builtin.pop(key, None)
         return builtin
 
     def _apply_limit(self):
         limit = self.config.max_memory_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+        _, hard = resource.getrlimit(resource.RLIMIT_AS)
+        if hard != resource.RLIM_INFINITY:
+            limit = min(limit, hard)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
 
     def _make_proxy(self, name: str):
         def proxy(*args, **kwargs):
@@ -319,11 +323,9 @@ class Sandbox:
     def _run_tool(self, data: ToolCallData) -> ToolResult:
         f = self.tools.get(data.name)
         if f is None:
-            e = NameError(data.name, "does not exists")
             return ToolResult(
-                error_type=type(e).__name__,
-                error_message=str(e),
-                traceback=traceback.format_exc()
+                error_type="NameError",
+                error_message=f"{data.name} is not a known tool",
             )
 
         out, err = io.StringIO(), io.StringIO()
@@ -358,7 +360,7 @@ class Sandbox:
                 if packet.data is None:
                     raise SandboxDied("sandbox returned an empty result")
                 return ExecutionResult.model_validate_json(packet.data)
-            if packet.type != "tool_call":
+            if packet.type != "tool_call" or packet.data is None:
                 raise SandboxDied(f"unexpected packet type: {packet.type}")
             self._send(Packet(type="tool_result",
                               data=self._answer_tool_call(packet.data)))
@@ -394,9 +396,30 @@ class Sandbox:
         return "\n".join(manual)
 
     def __exit__(self, exc_type, exc, tb) -> None:
-        with contextlib.suppress(BrokenPipeError):
+        if self._pid is None:
+            return
+        with contextlib.suppress(SandboxDied):
             self._send(Packet(type="close"))
-        with contextlib.suppress(BrokenPipeError):
-            self._tx.close()
-        self._rx.close()
-        os.waitpid(self._pid, 0)
+        for pipe in (self._tx, self._rx):
+            with contextlib.suppress(OSError):
+                pipe.close()
+        self._reap()
+
+    def _reap(self, grace: float = 5.0) -> None:
+        if self._pid is None:
+            return
+        deadline = time.monotonic() + grace
+        while time.monotonic() < deadline:
+            try:
+                pid, _ = os.waitpid(self._pid, os.WNOHANG)
+            except ChildProcessError:
+                break
+            if pid:
+                break
+            time.sleep(0.05)
+        else:
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(self._pid, signal.SIGQUIT)
+            with contextlib.suppress(ChildProcessError):
+                os.waitpid(self._pid, 0)
+        self._pid = None

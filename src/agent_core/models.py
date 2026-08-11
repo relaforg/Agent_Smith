@@ -232,8 +232,8 @@ class ExecutionResult(BaseModel):
         for label in ("stdout", "stderr", "error", "final_answer"):
             if value := getattr(self, label):
                 parts.append(f"--- {label} ---\n{value.rstrip()}")
-        if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:
-            parts.append("flags: " + ", ".join(flags))
+        # if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:
+        #     parts.append("flags: " + ", ".join(flags))
         return "\n".join(parts) or ""
 
 
