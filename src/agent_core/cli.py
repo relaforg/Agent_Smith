@@ -135,7 +135,7 @@ async def run():
             target) if target is not None else contextlib.nullcontext()
         async with client_ctx as client:
             tools = {} if client is None else {
-                t.name: _make_proxy(client, t) for t in (
+                t.name.replace("-", "_"): _make_proxy(client, t) for t in (
                     await client.list_tools()).tools
             }
 
