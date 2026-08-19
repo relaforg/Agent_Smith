@@ -4,6 +4,8 @@ import contextlib
 import atexit
 import signal
 import sys
+import tarfile
+import io
 from mcp.server import MCPServer
 from typing import List, Dict
 from agent_core.models import SWEBenchTaskInput
@@ -27,7 +29,6 @@ c = client.containers.run(
     network_disabled=True, mem_limit="128m",
     cpu_period=100000, cpu_quota=50000, labels=LABELS
 )
-# c.start()
 
 
 def _close() -> None:
@@ -58,21 +59,39 @@ def read_file(filepath: str, start_line: int, end_line: int) -> str:
 @mcp.tool()
 def edit_file(filepath: str, old_str: str, new_str: str):
     """Replace an exact string in a file with a new string."""
-    ...
+    res = c.exec_run(["cat", filepath], demux=True)
+    if res.output[0] is None:
+        return
+    content: str = res.output[0].decode(errors="replace")
+    content = content.replace(old_str, new_str)
+    put_file(c, filepath, content)
 
 
 @mcp.tool()
 def list_files(directory: str, pattern: str) -> List[str]:
     """List files in a directory matching a given pattern."""
     res = c.exec_run(["find", directory, "-maxdepth", "1",
-                     "-name", pattern, "-type", "f"])
-    return res.output.decode(errors="replace").splitlines() if res.output is not None else []
+                     "-name", pattern, "-type", "f"], demux=True)
+    return res.output[0].decode(errors="replace").splitlines() if res.output[0] is not None else []
 
 
 @mcp.tool()
 def search_code(pattern: str, file_pattern: str) -> str:
     """Perform a grep-like search in the codebase."""
-    ...
+    res = c.exec_run(["find", "/", "-type", "d", "!", "-readable", "-prune",
+                      "-o", "-type", "f", "-name", file_pattern, "-print"],
+                     demux=True)
+    files = res.output[0].decode(errors="replace").splitlines(
+    ) if res.output[0] is not None else []
+
+    out = []
+    for file in files:
+        res = c.exec_run(["grep", "-n", pattern, file], demux=True)
+        if res.output[0] is None or res.exit_code != 0:
+            continue
+        out.extend(
+            [f"{file}:{line}" for line in res.output[0].decode(errors="replace").splitlines()])
+    return "\n".join(out)
 
 
 @mcp.tool()
@@ -112,8 +131,23 @@ def run_command(command, workdir) -> Dict[str, str]:
     }
 
 
+def put_file(container, path: str, content: str) -> None:
+    data, buf = content.encode(), io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo(name=os.path.basename(path))
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    buf.seek(0)
+    container.put_archive(os.path.dirname(path) or "/", buf)
+
+
 if __name__ == "__main__":
-    print(list_files("/", "*"))
+    put_file(c, "/test", Path("tmp/test").read_text())
+    # print(list_files("/", "*"))
     # print(run_command("pwd", "/test"))
-    print(read_file("/miniconda.sh", 10, 10))
+    # print(read_file("/miniconda.sh", 10, 10))
+    # print(run_command("cat test", "/"))
+    # edit_file("/test", "Hello", "Goodbye")
+    # print(run_command("cat test", "/"))
+    print(search_code("Hello", "test"))
     # mcp.run()
