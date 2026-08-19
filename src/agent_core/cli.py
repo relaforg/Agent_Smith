@@ -98,12 +98,14 @@ def repl_loop(sandbox: Sandbox):
         try:
             code = input(">>> ")
         except EOFError:
-            print()
+            print()  # To remove hidden char when Ctrl-D
             return 0
         if code == "exit":
             return 0
         try:
-            print(sandbox.execute(code))
+            res = sandbox.execute(code)
+            if res.__str__():
+                print(res)
         except SandboxDied as e:
             print(f"sandbox died: {e}", file=sys.stderr)
             return 1

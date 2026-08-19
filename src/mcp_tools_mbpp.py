@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Every container we create carries these labels, so a run that was
 # killed before it could clean up can be swept on the next start.
-LABEL = "agent-smith"
+LABEL = "mbpp-mcp"
 LABELS = {LABEL: "mbpp", f"{LABEL}.pid": str(os.getpid())}
 
 TASK = MBPPTaskInput.model_validate_json(Path(
@@ -26,7 +26,6 @@ client = docker.from_env()
 
 
 def _is_alive(pid: str) -> bool:
-    """Tell whether the process that created a container still runs."""
     try:
         os.kill(int(pid), 0)
     except (ProcessLookupError, ValueError, OverflowError):
@@ -37,11 +36,6 @@ def _is_alive(pid: str) -> bool:
 
 
 def _sweep_orphans() -> None:
-    """Remove containers whose creating process is gone.
-
-    Checking the pid matters: several agents may run at the same time,
-    and a blind sweep on the label would delete a sibling's container.
-    """
     with contextlib.suppress(docker.errors.APIError):
         stale = client.containers.list(all=True,
                                        filters={"label": f"{LABEL}=mbpp"})
@@ -54,7 +48,7 @@ def _sweep_orphans() -> None:
 _sweep_orphans()
 
 c = client.containers.create(
-    "python:3.11-slim", command="tail -f /dev/null", detach=True,
+    "python:3.10", command="tail -f /dev/null", detach=True,
     network_disabled=True, mem_limit="128m",
     cpu_period=100000, cpu_quota=50000, labels=LABELS
 )
@@ -62,21 +56,11 @@ c.start()
 
 
 def _close() -> None:
-    """Delete the container. Safe to call twice, never raises.
-
-    An exception here would mask whatever error caused the shutdown, so
-    every docker failure is swallowed: the sweep above is the fallback.
-    """
     with contextlib.suppress(docker.errors.APIError):
         c.remove(force=True)
 
 
-# Covers a normal exit: the REPL closing stdin, mcp.run() returning, an
-# unhandled exception, or sys.exit().
 atexit.register(_close)
-
-# SIGTERM kills the interpreter outright: no atexit, no finally. Turning
-# it into a SystemExit puts us back on the normal shutdown path.
 signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
 
@@ -104,6 +88,4 @@ def run_tests(code: str) -> str:
 
 
 if __name__ == "__main__":
-    put_file(c, "/runner.py", Path(__file__).with_name("runner.py").read_text())
-    print(run_tests("print('test')"))
-    # mcp.run()
+    mcp.run()

@@ -1,8 +1,41 @@
+import os
+import docker
+import contextlib
+import atexit
+import signal
+import sys
 from mcp.server import MCPServer
 from typing import List, Dict
+from agent_core.models import SWEBenchTaskInput
+from pathlib import Path
 
+
+LABEL = "swebench-mcp"
+LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getgid())}
+
+TASK = SWEBenchTaskInput.model_validate_json(
+    Path(os.environ["SWEBENCH_TASK_FILE"]).read_text()
+) if os.environ.get("SWEBENCH_TASK_FILE") else None
 
 mcp = MCPServer("swebench_mcp")
+
+client = docker.from_env()
+
+c = client.containers.create(
+    "python:3.10", command="tail -f /dev/null", detach=True,
+    network_disabled=True, mem_limit="128m",
+    cpu_period=100000, cpu_quota=50000, labels=LABELS
+)
+c.start()
+
+
+def _close() -> None:
+    with contextlib.suppress(docker.errors.APIError):
+        c.remove(force=True)
+
+
+atexit.register(_close)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
 
 @mcp.tool()
