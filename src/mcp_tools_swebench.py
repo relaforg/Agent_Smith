@@ -78,20 +78,9 @@ def list_files(directory: str, pattern: str) -> List[str]:
 @mcp.tool()
 def search_code(pattern: str, file_pattern: str) -> str:
     """Perform a grep-like search in the codebase."""
-    res = c.exec_run(["find", "/", "-type", "d", "!", "-readable", "-prune",
-                      "-o", "-type", "f", "-name", file_pattern, "-print"],
+    res = c.exec_run(["grep", "-rnIs", pattern, f"--include={file_pattern}", "/"],
                      demux=True)
-    files = res.output[0].decode(errors="replace").splitlines(
-    ) if res.output[0] is not None else []
-
-    out = []
-    for file in files:
-        res = c.exec_run(["grep", "-n", pattern, file], demux=True)
-        if res.output[0] is None or res.exit_code != 0:
-            continue
-        out.extend(
-            [f"{file}:{line}" for line in res.output[0].decode(errors="replace").splitlines()])
-    return "\n".join(out)
+    return res.output[0].decode(errors="replace") if res.output[0] is not None else ""
 
 
 @mcp.tool()
@@ -149,5 +138,5 @@ if __name__ == "__main__":
     # print(run_command("cat test", "/"))
     # edit_file("/test", "Hello", "Goodbye")
     # print(run_command("cat test", "/"))
-    print(search_code("Hello", "test"))
+    print(search_code("Hello", "tes"))
     # mcp.run()
