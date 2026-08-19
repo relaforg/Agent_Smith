@@ -42,10 +42,12 @@ signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 @mcp.tool()
 def read_file(filepath: str, start_line: int, end_line: int) -> str:
     """Read the content of a file with line numbers."""
+    if start_line > end_line:
+        return "Invalid range"
     res = c.exec_run(["head", "-n", str(end_line), filepath, "|",
-                     "tail", "-n", str(start_line)], demux=True)
+                     "tail", "-n", str(end_line - start_line)], demux=True)
     return "\n".join([
-        f"{i + start_line}:\t{line}" for
+        f"{i + start_line}: {line}" for
         (i, line) in enumerate(res.output[0].
                                decode(errors="replace").splitlines())
     ]) if res.output[0] is not None \
@@ -113,5 +115,5 @@ def run_command(command, workdir) -> Dict[str, str]:
 if __name__ == "__main__":
     print(list_files("/", "*"))
     # print(run_command("pwd", "/test"))
-    print(read_file("/miniconda.sh", 5, 10))
+    print(read_file("/miniconda.sh", 10, 10))
     # mcp.run()
