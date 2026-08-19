@@ -86,19 +86,25 @@ def search_code(pattern: str, file_pattern: str) -> str:
 @mcp.tool()
 def search_function_or_class_definition_in_code(name: str) -> str:
     """Find the definition of a function or a class."""
-    ...
+    res = c.exec_run(["grep", "-rnIs", f"def {name}", "-o",
+                      f"class {name}", "--include=*.py", "/"],
+                     demux=True)
+    return res.output[0].decode(errors="replace") if res.output[0] is not None else ""
 
 
 @mcp.tool()
 def find_references(name: str, filepath: str, line: int) -> str:
     """Find all usages of a symbol (function or class)."""
-    ...
+    res = c.exec_run(["grep", "-rnIs", "(!", f"def {name}", "-a",
+                      "!", f"class {name})", "-o", name, "/"],
+                     demux=True)
+    return res.output[0].decode(errors="replace") if res.output[0] is not None else ""
 
 
 @mcp.tool()
 def run_tests():
     """Execute the evaluation script."""
-    return "dfdfdf"
+    ...
 
 
 @mcp.tool()
@@ -138,5 +144,7 @@ if __name__ == "__main__":
     # print(run_command("cat test", "/"))
     # edit_file("/test", "Hello", "Goodbye")
     # print(run_command("cat test", "/"))
-    print(search_code("Hello", "tes"))
+    # print(search_code("Hello", "tes"))
+    print(search_function_or_class_definition_in_code("test"))
+    # print(find_references("test", "/", 1))
     # mcp.run()
