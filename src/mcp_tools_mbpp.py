@@ -47,12 +47,11 @@ def _sweep_orphans() -> None:
 
 _sweep_orphans()
 
-c = client.containers.create(
+c = client.containers.run(
     "python:3.10", command="tail -f /dev/null", detach=True,
     network_disabled=True, mem_limit="128m",
     cpu_period=100000, cpu_quota=50000, labels=LABELS
 )
-c.start()
 
 
 def _close() -> None:
@@ -88,4 +87,6 @@ def run_tests(code: str) -> str:
 
 
 if __name__ == "__main__":
+    put_file(c, "/runner.py", Path(__file__)
+             .with_name("runner.py").read_text())
     mcp.run()
