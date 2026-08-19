@@ -42,7 +42,15 @@ signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 @mcp.tool()
 def read_file(filepath: str, start_line: int, end_line: int) -> str:
     """Read the content of a file with line numbers."""
-    ...
+    res = c.exec_run(["head", "-n", str(end_line), filepath, "|",
+                     "tail", "-n", str(start_line)], demux=True)
+    return "\n".join([
+        f"{i + start_line}:\t{line}" for
+        (i, line) in enumerate(res.output[0].
+                               decode(errors="replace").splitlines())
+    ]) if res.output[0] is not None \
+        else res.output[1].decode(errors="replace") if res.output[1] is not None \
+        else ""
 
 
 @mcp.tool()
@@ -103,7 +111,7 @@ def run_command(command, workdir) -> Dict[str, str]:
 
 
 if __name__ == "__main__":
-    # print(list_files("/", "*"))
+    print(list_files("/", "*"))
     # print(run_command("pwd", "/test"))
-    print()
+    print(read_file("/miniconda.sh", 5, 10))
     # mcp.run()
