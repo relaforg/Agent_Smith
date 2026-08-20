@@ -23,30 +23,6 @@ TASK = MBPPTaskInput.model_validate_json(Path(
 mcp = MCPServer("mbpp_mcp")
 
 client = docker.from_env()
-
-
-def _is_alive(pid: str) -> bool:
-    try:
-        os.kill(int(pid), 0)
-    except (ProcessLookupError, ValueError, OverflowError):
-        return False
-    except PermissionError:
-        return True  # alive, simply owned by another user
-    return True
-
-
-def _sweep_orphans() -> None:
-    with contextlib.suppress(docker.errors.APIError):
-        stale = client.containers.list(all=True,
-                                       filters={"label": f"{LABEL}=mbpp"})
-    for old in stale:
-        if not _is_alive(old.labels.get(f"{LABEL}.pid", "")):
-            with contextlib.suppress(docker.errors.APIError):
-                old.remove(force=True)
-
-
-_sweep_orphans()
-
 c = client.containers.run(
     "python:3.10", command="tail -f /dev/null", detach=True,
     network_disabled=True, mem_limit="128m",
@@ -83,7 +59,7 @@ def run_tests(code: str) -> str:
     }))
     res = c.exec_run(["timeout", "-s", "KILL", "10",
                      "python", "/runner.py", "/payload.json"])
-    return res
+    return res.output.decode(errors="replace") if res.output is not None else ""
 
 
 if __name__ == "__main__":

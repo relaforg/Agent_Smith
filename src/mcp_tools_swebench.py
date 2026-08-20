@@ -6,6 +6,7 @@ import signal
 import sys
 import tarfile
 import io
+import json
 from mcp.server import MCPServer
 from typing import List, Dict
 from agent_core.models import SWEBenchTaskInput
@@ -95,10 +96,14 @@ def search_function_or_class_definition_in_code(name: str) -> str:
 @mcp.tool()
 def find_references(name: str, filepath: str, line: int) -> str:
     """Find all usages of a symbol (function or class)."""
-    res = c.exec_run(["grep", "-rnIs", "(!", f"def {name}", "-a",
-                      "!", f"class {name})", "-o", name, "/"],
-                     demux=True)
-    return res.output[0].decode(errors="replace") if res.output[0] is not None else ""
+    put_file(c, "/payload.json", json.dumps({
+        "name": name,
+        "filepath": filepath,
+        "line": line
+    }))
+    res = c.exec_run(["timeout", "-s", "KILL", "10",
+                      "python", "/refs.py", "/payload.json"])
+    return res.output.decode(errors="replace") if res.output is not None else ""
 
 
 @mcp.tool()
@@ -137,7 +142,7 @@ def put_file(container, path: str, content: str) -> None:
 
 
 if __name__ == "__main__":
-    put_file(c, "/test", Path("tmp/test").read_text())
+    put_file(c, "/refs.py", Path(__file__).with_name("refs.py").read_text())
     # print(list_files("/", "*"))
     # print(run_command("pwd", "/test"))
     # print(read_file("/miniconda.sh", 10, 10))
@@ -145,6 +150,6 @@ if __name__ == "__main__":
     # edit_file("/test", "Hello", "Goodbye")
     # print(run_command("cat test", "/"))
     # print(search_code("Hello", "tes"))
-    print(search_function_or_class_definition_in_code("test"))
-    # print(find_references("test", "/", 1))
+    # print(search_function_or_class_definition_in_code("test"))
+    print(find_references("enclosing_scope", "/refs.py", 48))
     # mcp.run()
