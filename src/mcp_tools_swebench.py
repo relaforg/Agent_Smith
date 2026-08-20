@@ -109,14 +109,19 @@ def find_references(name: str, filepath: str, line: int) -> str:
 @mcp.tool()
 def run_tests():
     """Execute the evaluation script."""
-    ...
+    if TASK is None:
+        return "No task selected"
+    res = c.exec_run(["bash", TASK.eval_script])
+    return res.output.decode(errors="replace") if res.output is not None else ""
 
 
 @mcp.tool()
 def get_patch():
     """Retrieve the unified git diff of all changes made to the repository,
     depending on the implementation"""
-    ...
+    c.exec_run(["git", "-c", "core.fileMode=false", "add", "-N", "."])
+    res = c.exec_run(["git", "-c", "core.fileMode=false", "diff"], demux=True)
+    return res.output[0].decode(errors="replace") if res.output[0] is not None else ""
 
 
 @mcp.tool()
@@ -146,10 +151,12 @@ if __name__ == "__main__":
     # print(list_files("/", "*"))
     # print(run_command("pwd", "/test"))
     # print(read_file("/miniconda.sh", 10, 10))
-    # print(run_command("cat test", "/"))
+    # print(run_command("touch /testbed/test.tmp", "/"))
     # edit_file("/test", "Hello", "Goodbye")
     # print(run_command("cat test", "/"))
     # print(search_code("Hello", "tes"))
     # print(search_function_or_class_definition_in_code("test"))
-    print(find_references("enclosing_scope", "/refs.py", 48))
-    # mcp.run()
+    # print(find_references("enclosing_scope", "/refs.py", 48))
+    # print(run_tests())
+    # print(get_patch())
+    mcp.run()
