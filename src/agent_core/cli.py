@@ -63,7 +63,7 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
     required = schema.get("required", [])
     return inspect.Signature([
         inspect.Parameter(
-            name, inspect.Parameter.KEYWORD_ONLY,
+            name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
             default=inspect.Parameter.empty if name in required else None,
         )
         for name in schema.get("properties", {})
@@ -71,8 +71,11 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
 
 
 def _make_proxy(client: Client, tool: types.Tool) -> Callable:
-    def proxy(**kwargs):
-        result = anyio.from_thread.run(client.call_tool, tool.name, kwargs)
+    sig = _signature_from_schema(tool.input_schema)
+
+    def proxy(*args, **kwargs):
+        arguments = dict(sig.bind(*args, **kwargs).arguments)
+        result = anyio.from_thread.run(client.call_tool, tool.name, arguments)
         text = "\n".join(
             block.text for block in result.content
             if isinstance(block, types.TextContent)
@@ -95,12 +98,14 @@ def repl_loop(sandbox: Sandbox):
         try:
             code = input(">>> ")
         except EOFError:
-            print()
+            print()  # To remove hidden char when Ctrl-D
             return 0
         if code == "exit":
             return 0
         try:
-            print(sandbox.execute(code))
+            res = sandbox.execute(code)
+            if res.__str__():
+                print(res)
         except SandboxDied as e:
             print(f"sandbox died: {e}", file=sys.stderr)
             return 1
