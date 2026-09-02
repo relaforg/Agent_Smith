@@ -2,6 +2,7 @@ import os
 import io
 import sys
 import json
+import shlex
 import shutil
 import atexit
 import signal
@@ -40,8 +41,7 @@ class DockerBackend:
         self.client = docker.from_env()
         self.container = self.client.containers.run(
             image=image, command="tail -f /dev/null", detach=True,
-            network_disabled=True, mem_limit="128m",
-            cpu_period=100000, cpu_quota=50000, labels=LABELS
+            network_disabled=True, labels=LABELS
         )
         self.put_file(self.refs_script,
                       Path(__file__).with_name("refs.py").read_text())
@@ -79,6 +79,9 @@ class LocalBackend:
         self.refs_script = str(Path(__file__).with_name("refs.py"))
 
     def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
+        # docker-py splits a string command for us; subprocess does not.
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
         try:
             res = subprocess.run(cmd, cwd=workdir or self.root,
                                  capture_output=True, text=True,

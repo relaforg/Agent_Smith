@@ -12,22 +12,15 @@ from agent_core.models import MBPPTaskInput
 from pathlib import Path
 from typing import List
 
-# Every container we create carries these labels, so a run that was
-# killed before it could clean up can be swept on the next start.
 LABEL = "mbpp-mcp"
 LABELS = {LABEL: "mbpp", f"{LABEL}.pid": str(os.getpid())}
-
-# TASK = MBPPTaskInput.model_validate_json(Path(
-#     os.environ["MBPP_TASK_FILE"]).read_text()) if os.environ.get(
-#     "MBPP_TASK_FILE") else None
 
 mcp = MCPServer("mbpp_mcp")
 
 client = docker.from_env()
 c = client.containers.run(
     "python:3.10", command="tail -f /dev/null", detach=True,
-    network_disabled=True, mem_limit="128m",
-    cpu_period=100000, cpu_quota=50000, labels=LABELS
+    network_disabled=True, labels=LABELS
 )
 
 
