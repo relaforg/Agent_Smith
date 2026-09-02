@@ -10,23 +10,17 @@ import json
 from mcp.server import MCPServer
 from agent_core.models import MBPPTaskInput
 from pathlib import Path
+from typing import List
 
-# Every container we create carries these labels, so a run that was
-# killed before it could clean up can be swept on the next start.
 LABEL = "mbpp-mcp"
 LABELS = {LABEL: "mbpp", f"{LABEL}.pid": str(os.getpid())}
-
-TASK = MBPPTaskInput.model_validate_json(Path(
-    os.environ["MBPP_TASK_FILE"]).read_text()) if os.environ.get(
-    "MBPP_TASK_FILE") else None
 
 mcp = MCPServer("mbpp_mcp")
 
 client = docker.from_env()
 c = client.containers.run(
     "python:3.10", command="tail -f /dev/null", detach=True,
-    network_disabled=True, mem_limit="128m",
-    cpu_period=100000, cpu_quota=50000, labels=LABELS
+    network_disabled=True, labels=LABELS
 )
 
 
@@ -49,17 +43,47 @@ def put_file(container, path: str, content: str) -> None:
     container.put_archive(os.path.dirname(path) or "/", buf)
 
 
+def _result(success: bool, output: str) -> str:
+    return json.dumps({"success": success, "output": output})
+
+
 @mcp.tool()
-def run_tests(code: str) -> str:
-    if TASK is None:
-        return "No task selected"
+def run_tests(code: str, test_list: List[str]) -> str:
+    """Run a candidate solution against the given test assertions.
+
+    Returns a JSON string with a `success` boolean, true when every
+    assertion passed, and an `output` field describing what happened.
+    """
     put_file(c, "/payload.json", json.dumps({
-        "source": code + "\n" + "\n".join(TASK.test_imports),
-        "tests": TASK.test_list
+        "source": code,
+        "tests": test_list
     }))
     res = c.exec_run(["timeout", "-s", "KILL", "10",
                      "python", "/runner.py", "/payload.json"])
-    return res.output.decode(errors="replace") if res.output is not None else ""
+    raw = res.output.decode(errors="replace") if res.output is not None else ""
+
+    try:
+        report = json.loads(raw)
+        loaded = report["loaded"]
+    except (json.JSONDecodeError, TypeError, KeyError):
+        # The runner never printed its report: the 10s timeout killed it
+        # with SIGKILL (no output at all), or the container is broken.
+        return _result(False, raw.strip() or
+                       f"the test runner produced no output "
+                       f"(exit code {res.exit_code})")
+
+    if not loaded:
+        return _result(False, "the solution could not be loaded:\n"
+                              f"{report.get('error', '')}")
+
+    results = report.get("results", [])
+    failed = [r for r in results if not r["ok"]]
+    lines = [
+        f"{len(results) - len(failed)}/{len(results)} assertion(s) passed"]
+    lines += [f"{r['test']}\n{r['error']}" for r in failed]
+    if report.get("stdout"):
+        lines.append(f"--- stdout ---\n{report['stdout']}")
+    return _result(not failed, "\n".join(lines))
 
 
 if __name__ == "__main__":
