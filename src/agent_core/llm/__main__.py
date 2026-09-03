@@ -26,7 +26,7 @@ def test_retry_transient_recovery():
 
     attempts = 0
 
-    @with_retry(max_retries=3, initial_delay=0.05, jitter=False)
+    @with_retry(max_retries=3, initial_delay=0.05)
     def mock_api_call():
         nonlocal attempts
         attempts += 1
