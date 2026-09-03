@@ -4,6 +4,8 @@ from typing import Literal, Optional, Protocol
 
 from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass
+from typing import List, Literal, Optional, Protocol
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SandboxConfig(BaseModel):
@@ -12,7 +14,9 @@ class SandboxConfig(BaseModel):
     Uses allowlist approach: only imports in authorized_imports are
     allowed. Everything else is blocked by default.
     """
-    authorized_imports: list[str] = Field(default_factory=lambda: [
+    #authorized_imports: list[str] = Field(default_factory=lambda: [
+    model_config = ConfigDict(extra="forbid")
+    authorized_imports: List[str] = Field(default_factory=lambda: [
         "math", "math.*",
         "collections", "collections.*",
         "itertools", "re", "json",
@@ -26,8 +30,8 @@ class SandboxConfig(BaseModel):
     allowed_directories: list[str] = Field(default_factory=lambda: [
         "/testbed", "/tmp/agent"
     ])
-    max_execution_time_seconds: int = 30
-    max_memory_mb: int = 512
+    max_execution_time_seconds: int = Field(default=30, gt=0)
+    max_memory_mb: int = Field(default=512, gt=0)
 
 
 class MBPPTaskInput(BaseModel):
@@ -229,6 +233,15 @@ class ExecutionResult(BaseModel):
     timed_out: bool = False
     memory_exceeded: bool = False
 
+    def __str__(self) -> str:
+        parts = []
+        for label in ("stdout", "stderr", "error", "final_answer"):
+            if value := getattr(self, label):
+                parts.append(f"--- {label} ---\n{value.rstrip()}")
+        # if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:
+        #     parts.append("flags: " + ", ".join(flags))
+        return "\n".join(parts) or ""
+
 
 class SandboxProtocol(Protocol):
     def execute(self, code: str) -> ExecutionResult:
@@ -237,7 +250,10 @@ class SandboxProtocol(Protocol):
     def get_manual(self) -> str:
         ...
 
-    def close(self) -> None:
+    def __enter__(self):
+        ...
+
+    def __exit__(self, exc_type, exc, tb) -> None:
         ...
 
 ######### LLM #########
