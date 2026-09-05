@@ -5,12 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = "==3.10.*"
 dependencies = [
+    "httpx>=0.28.1",
     "docker>=7.2.0",
     "mcp[cli]>=2.0.0",
     "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    "tiktoken>=0.13.0",
     "typing>=3.10.0.0",
 ]
 
+[tool.ruff.lint]
+ignore = ["UP045"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
