@@ -24,6 +24,15 @@ c = client.containers.run(
 )
 
 
+def put_file(container, path: str, content: str) -> None:
+    data, buf = content.encode(), io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        info = tarfile.TarInfo(name=os.path.basename(path))
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    buf.seek(0)
+    container.put_archive(os.path.dirname(path) or "/", buf)
+
 def _close() -> None:
     with contextlib.suppress(docker.errors.APIError):
         c.remove(force=True)
@@ -33,14 +42,6 @@ atexit.register(_close)
 signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
 
-def put_file(container, path: str, content: str) -> None:
-    data, buf = content.encode(), io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w") as tar:
-        info = tarfile.TarInfo(name=os.path.basename(path))
-        info.size = len(data)
-        tar.addfile(info, io.BytesIO(data))
-    buf.seek(0)
-    container.put_archive(os.path.dirname(path) or "/", buf)
 
 
 def _result(success: bool, output: str) -> str:

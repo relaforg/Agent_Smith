@@ -70,7 +70,7 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
     ])
 
 
-def _make_proxy(client: Client, tool: types.Tool) -> Callable:
+def make_proxy(client: Client, tool: types.Tool) -> Callable:
     sig = _signature_from_schema(tool.input_schema)
 
     def proxy(*args, **kwargs):
@@ -140,7 +140,7 @@ async def run():
             target) if target is not None else contextlib.nullcontext()
         async with client_ctx as client:
             tools = {} if client is None else {
-                t.name.replace("-", "_"): _make_proxy(client, t) for t in (
+                t.name.replace("-", "_"): make_proxy(client, t) for t in (
                     await client.list_tools()).tools
             }
 
