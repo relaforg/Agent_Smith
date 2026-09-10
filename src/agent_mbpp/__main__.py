@@ -16,26 +16,44 @@ from src.agent_core.models import Message, SandboxConfig
 from src.agent_core.sandbox.cli import extract_config, make_proxy
 from src.agent_core.sandbox.core import Sandbox
 
-SYSTEM_PROMPT = """You are an expert Python developer. Your goal is to write a Python function that solves the requested task.
+SYSTEM_PROMPT = """You are an expert Python developer. Your goal is to write a Python function that solves the requested task through a strict two-turn process.
 
-Rules:
-1. Output ONLY valid executable Python code inside a single ```python ... ``` code block.
-2. Do NOT include markdown text explanations outside the code block.
-3. You are executing code in a scratchpad sandbox. Use print statements to test your function; you will receive the stdout/stderr/error output of your execution.
-4. When you are confident that your implementation is correct and fully solves the problem, call `final_answer(code_string)` where `code_string` is a string containing the complete Python function implementation.
+RULES & WORKFLOW:
 
-Example:
+1. TOKEN EFFICIENCY & CODE STYLE:
+   - Perform your reasoning internally before writing code.
+   - Keep code clean, compact, and concise.
+   - DO NOT write line-by-line comments, step-by-step code annotations, or verbose docstrings.
+   - Strip unnecessary code comments to avoid token waste.
+
+2. PHASE 1 — SCRATCHPAD & TESTING (First Turn):
+   - Write your candidate Python function.
+   - Include test cases and print statements to verify edge cases and return types (e.g., check expected return types for invalid/impossible cases: False vs -1, None, etc.).
+   - Output ONLY a standard ```python ... ``` block.
+   - DO NOT call `final_answer(...)` on this turn. Wait for the sandbox execution output.
+
+3. PHASE 2 — SUBMISSION (After reviewing sandbox output):
+   - Review the sandbox stdout/stderr from your previous turn.
+   - If your logic or test assertions failed, refine your function in the scratchpad and test again.
+   - Once your scratchpad output confirms all edge cases and assertions pass, call `final_answer(...)` to submit your final solution.
+
+EXAMPLE PHASE 1 (Scratchpad Turn):
 ```python
 def add(a, b):
     return a + b
 
-# Testing in sandbox
-print(add(2, 3))
+# Run test cases in scratchpad first
+print("Test 1:", add(2, 3))  # Expected: 5
+print("Test 2:", add(-1, 1)) # Expected: 0
+```
 
-# Final submission
+EXAMPLE PHASE 2 (Submission Turn):
+```python
+
 final_answer('''def add(a, b):
     return a + b''')
 ```
+
 """
 
 
@@ -88,6 +106,7 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
     initial_user_prompt = (
         f"Task Description:\n{task.task_definition}\n\n"
         f"Function Signature:\n{task.function_definition}\n\n"
+        f"Example Test Cases:\n" + "\n".join(task.test_list) + "\n\n"
         f"Required Imports:\n{json.dumps(task.test_imports)}\n"
     )
 
@@ -128,22 +147,25 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
             if exec_result.final_answer is not None:
                 candidate_solution = exec_result.final_answer
 
-                test_harness = (
+                test_blocks = []
+                for stmt in task.test_list:
+                    test_blocks.append(
+                        f"try:\n"
+                        f"    {stmt}\n"
+                        f"except Exception as e:\n"
+                        f"    failures.append(f'FAILED TEST: {stmt} | Error: {{type(e)}}: {{e}}')"
+                    )
+
+                full_tests = (
                     f"{candidate_solution}\n\n"
-                    f"test_statements = {json.dumps(task.test_list)}\n"
                     "failures = []\n"
-                    "for stmt in test_statements:\n"
-                    "    try:\n"
-                    "        exec(stmt)\n"
-                    "    except Exception as e:\n"
-                    "        failures.append(f'FAILED TEST: {stmt} | Error: {type(e)}: {e}')\n"
+                    + "\n".join(test_blocks) + "\n"
                     "if failures:\n"
                     "    raise AssertionError('\\n'.join(failures))\n"
                 )
 
                 # Run test assertions against candidate solution
-                test_input = f"{candidate_solution}\n\n" + "\n".join(task.test_list)
-                test_exec_result = sb.execute(test_harness)
+                test_exec_result = sb.execute(full_tests)
 
                 passed = test_exec_result.error is None
 
@@ -208,7 +230,8 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
             else:
                 user_feedback = (
                     f"Sandbox execution output:\n{sandbox_output}\n\n"
-                    "Continue refining your logic, or call `final_answer(code_string)` when you are ready."
+                    "IMPORTANT: You defined/executed python code, but you did NOT call `final_answer(...)`.\n"
+                    "If you are confident in your solution, submit it by calling `final_answer('''<your code>''')`."
                 )
 
             messages.append(Message(role="user", content=user_feedback))
@@ -235,7 +258,7 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
         error=error_message,
         timestamp=datetime.now().isoformat(),
     )
-
+    print(f"\n\n\nin: {total_input_tokens}\nout: {total_output_tokens}\n")
     await asyncio.to_thread(
         _write_output,
         output_file,
