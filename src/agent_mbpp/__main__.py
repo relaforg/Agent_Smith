@@ -140,20 +140,19 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
             llm_output = answer.content
             extracted_code = extract_python_code(llm_output)
 
-            # Execute ONLY the model's code in the sandbox
             exec_result = sb.execute(extracted_code)
 
-            # Case A: Model invoked final_answer(code_string)
             if exec_result.final_answer is not None:
                 candidate_solution = exec_result.final_answer
 
                 test_blocks = []
-                for stmt in task.test_list:
+                for test in task.test_list:
+                    dump_test = json.dumps(test)
                     test_blocks.append(
                         f"try:\n"
-                        f"    {stmt}\n"
+                        f"    {test}\n"
                         f"except Exception as e:\n"
-                        f"    failures.append(f'FAILED TEST: {stmt} | Error: {{type(e)}}: {{e}}')"
+                        f"    failures.append(f'FAILED TEST: ' + {dump_test} + f' | Error: {{type(e)}}: {{e}}')"
                     )
 
                 full_tests = (
@@ -164,7 +163,6 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
                     "    raise AssertionError('\\n'.join(failures))\n"
                 )
 
-                # Run test assertions against candidate solution
                 test_exec_result = sb.execute(full_tests)
 
                 passed = test_exec_result.error is None
@@ -186,7 +184,6 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
                         + "\n".join(output_parts).strip()
                     )
 
-            # Case B: Model ran regular code without calling final_answer
             else:
                 passed = False
                 output_parts = []
