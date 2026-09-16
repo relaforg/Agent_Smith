@@ -1,20 +1,20 @@
-import os
+import atexit
+import contextlib
 import io
-import sys
 import json
+import os
 import shlex
 import shutil
-import atexit
 import signal
+import subprocess
+import sys
 import tarfile
 import tempfile
-import subprocess
-import contextlib
+from pathlib import Path
+from typing import Optional
+
 import docker
 from mcp.server import MCPServer
-from typing import List, Dict, Optional, Tuple
-from pathlib import Path
-
 
 LABEL = "swebench-mcp"
 LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getgid())}
@@ -46,7 +46,7 @@ class DockerBackend:
         self.put_file(self.refs_script,
                       Path(__file__).with_name("refs.py").read_text())
 
-    def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
+    def exec(self, cmd, workdir: Optional[str] = None) -> tuple[int, str, str]:
         res = self.container.exec_run(cmd, demux=True, workdir=workdir)
         stdout, stderr = res.output
         return res.exit_code, _dec(stdout), _dec(stderr)
@@ -78,7 +78,7 @@ class LocalBackend:
         self.scratch = tempfile.mkdtemp(prefix="swebench-mcp-")
         self.refs_script = str(Path(__file__).with_name("refs.py"))
 
-    def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
+    def exec(self, cmd, workdir: Optional[str] = None) -> tuple[int, str, str]:
         # docker-py splits a string command for us; subprocess does not.
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
@@ -128,7 +128,7 @@ def edit_file(filepath: str, old_str: str, new_str: str):
 
 
 @mcp.tool()
-def list_files(directory: str, pattern: str) -> List[str]:
+def list_files(directory: str, pattern: str) -> list[str]:
     """List files in a directory matching a given pattern."""
     _, stdout, _ = backend.exec(["find", directory, "-maxdepth", "1",
                                  "-name", pattern, "-type", "f"])
@@ -190,7 +190,7 @@ def get_patch():
 
 
 @mcp.tool()
-def run_command(command, workdir) -> Dict[str, str | int]:
+def run_command(command, workdir) -> dict[str, str | int]:
     """Execute a shell command in the specified working directory.
     Returns the command’s stdout, stderr, and exit code."""
     exit_code, stdout, stderr = backend.exec(command, workdir=workdir)

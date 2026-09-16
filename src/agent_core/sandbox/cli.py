@@ -3,6 +3,7 @@ import readline
 import json
 import shlex
 import anyio
+import asyncio
 import inspect
 import contextlib
 import signal
@@ -70,27 +71,51 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
     ])
 
 
-def make_proxy(client: Client, tool: types.Tool) -> Callable:
-    sig = _signature_from_schema(tool.input_schema)
+# def make_proxy(client: Client, tool: types.Tool) -> Callable:
+#     sig = _signature_from_schema(tool.input_schema)
 
+#     def proxy(*args, **kwargs):
+#         arguments = dict(sig.bind(*args, **kwargs).arguments)
+#         result = anyio.from_thread.run(client.call_tool, tool.name, arguments)
+#         text = "\n".join(
+#             block.text for block in result.content
+#             if isinstance(block, types.TextContent)
+#         )
+#         if result.is_error:
+#             raise RuntimeError(text or f"{tool.name} failed")
+#         if result.structured_content is not None:
+#             return result.structured_content
+#         return text
+
+#     proxy.__name__ = tool.name
+#     proxy.__doc__ = tool.description
+#     proxy.__signature__ = _signature_from_schema(tool.input_schema)
+#     return proxy
+
+def make_proxy(client, tool, loop):
+    """Creates a synchronous proxy function for an async MCP tool."""
     def proxy(*args, **kwargs):
-        arguments = dict(sig.bind(*args, **kwargs).arguments)
-        result = anyio.from_thread.run(client.call_tool, tool.name, arguments)
-        text = "\n".join(
-            block.text for block in result.content
-            if isinstance(block, types.TextContent)
-        )
-        if result.is_error:
-            raise RuntimeError(text or f"{tool.name} failed")
-        if result.structured_content is not None:
-            return result.structured_content
-        return text
+        input_dict = dict(kwargs)
 
-    proxy.__name__ = tool.name
-    proxy.__doc__ = tool.description
-    proxy.__signature__ = _signature_from_schema(tool.input_schema)
+        # Handle both Pydantic attribute naming conventions (input_schema vs inputSchema)
+        schema = getattr(tool, "input_schema", getattr(tool, "inputSchema", None))
+
+        # Map positional arguments (*args) to parameter names
+        if args and isinstance(schema, dict) and "properties" in schema:
+            param_names = list(schema["properties"].keys())
+            for name, val in zip(param_names, args):
+                input_dict[name] = val
+
+        coro = client.call_tool(tool.name, arguments=input_dict)
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
+        result = future.result()
+
+        if hasattr(result, "content") and result.content:
+            text_contents = [c.text for c in result.content if hasattr(c, "text")]
+            return "\n".join(text_contents) if text_contents else result.content
+        return result
+
     return proxy
-
 
 def repl_loop(sandbox: Sandbox):
     print(f"Sandbox REPL (python {platform.python_version()})")
