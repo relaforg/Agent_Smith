@@ -8,6 +8,7 @@ import atexit
 import signal
 import tarfile
 import tempfile
+import importlib
 import subprocess
 import contextlib
 import docker
@@ -22,6 +23,9 @@ LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getgid())}
 DOCKER_IMAGE = os.environ.get("DOCKER_IMAGE", "python:3.10")
 TESTBED_PATH = os.environ.get("TESTBED_PATH")
 EVAL_SCRIPT = os.environ.get("EVAL_SCRIPT")
+# Where SWE-bench images check out the repository.
+DOCKER_TESTBED = "/testbed"
+SYMBOL_TIMEOUT = "30"
 
 mcp = MCPServer("swebench_mcp")
 
@@ -30,21 +34,43 @@ def _dec(raw: Optional[bytes]) -> str:
     return raw.decode(errors="replace") if raw else ""
 
 
+def _vendored_packages() -> List[Path]:
+    """The pure-Python packages refs.py needs, taken from our own venv.
+
+    The container has no network, so jedi cannot be pip-installed in it; we
+    copy it in instead. Missing on the host is not fatal: refs.py falls back
+    to its AST engine.
+    """
+    packages = []
+    for module in ("jedi", "parso"):
+        with contextlib.suppress(ImportError):
+            packages.append(
+                Path(importlib.import_module(module).__file__).parent)
+    return packages
+
+
 class DockerBackend:
     """Runs every command inside a throwaway container."""
 
     def __init__(self, image: str) -> None:
-        self.root = "/"
         self.python = "python"
         self.scratch = "/"
         self.refs_script = "/refs.py"
+        self.libs = "/tmp/mcp-libs"
         self.client = docker.from_env()
         self.container = self.client.containers.run(
             image=image, command="tail -f /dev/null", detach=True,
             network_disabled=True, labels=LABELS
         )
-        self.put_file(self.refs_script,
-                      Path(__file__).with_name("refs.py").read_text())
+        try:
+            exit_code, _, _ = self.exec(["test", "-d", DOCKER_TESTBED])
+            self.root = DOCKER_TESTBED if exit_code == 0 else "/"
+            self.put_file(self.refs_script,
+                          Path(__file__).with_name("refs.py").read_text())
+            self.put_tree(self.libs, _vendored_packages())
+        except Exception:
+            self.close()
+            raise
 
     def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
         res = self.container.exec_run(cmd, demux=True, workdir=workdir)
@@ -59,6 +85,25 @@ class DockerBackend:
             tar.addfile(info, io.BytesIO(data))
         buf.seek(0)
         self.container.put_archive(os.path.dirname(path) or "/", buf)
+
+    @staticmethod
+    def _sanitize(info: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
+        if "__pycache__" in info.name:
+            return None
+        info.uid = info.gid = 0
+        info.uname = info.gname = "root"
+        return info
+
+    def put_tree(self, dest: str, sources: List[Path]) -> None:
+        if not sources:
+            return
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w") as tar:
+            for src in sources:
+                tar.add(src, arcname=f"{os.path.basename(dest)}/{src.name}",
+                        filter=self._sanitize)
+        buf.seek(0)
+        self.container.put_archive(os.path.dirname(dest) or "/", buf)
 
     def close(self) -> None:
         with contextlib.suppress(docker.errors.APIError):
@@ -77,9 +122,9 @@ class LocalBackend:
         self.root = str(Path(path).resolve())
         self.scratch = tempfile.mkdtemp(prefix="swebench-mcp-")
         self.refs_script = str(Path(__file__).with_name("refs.py"))
+        self.libs = None
 
     def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
-        # docker-py splits a string command for us; subprocess does not.
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
         try:
@@ -135,39 +180,41 @@ def list_files(directory: str, pattern: str) -> List[str]:
     return stdout.splitlines()
 
 
+def _as_rows(grep_output: str) -> str:
+    rows = (row.split(":", 2) for row in grep_output.splitlines())
+    return "\n".join(f"{path}:{line} {text}"
+                     for path, line, text in (r for r in rows if len(r) == 3))
+
+
+def _symbols(**payload) -> str:
+    """Run refs.py inside the backend and hand back its rows."""
+    payload |= {"root": backend.root, "libs": backend.libs}
+    path = os.path.join(backend.scratch, "payload.json")
+    backend.put_file(path, json.dumps(payload))
+    _, stdout, stderr = backend.exec(["timeout", "-s", "KILL", SYMBOL_TIMEOUT,
+                                      backend.python, backend.refs_script,
+                                      path])
+    return stdout + stderr
+
+
 @mcp.tool()
 def search_code(pattern: str, file_pattern: str) -> str:
     """Perform a grep-like search in the codebase."""
     _, stdout, _ = backend.exec(["grep", "-rnIs", pattern,
                                  f"--include={file_pattern}", backend.root])
-    return stdout
+    return _as_rows(stdout)
 
 
 @mcp.tool()
 def search_function_or_class_definition_in_code(name: str) -> str:
     """Find the definition of a function or a class."""
-    _, stdout, _ = backend.exec(["grep", "-rnIs", f"def {name}", "-o",
-                                 f"class {name}", "--include=*.py",
-                                 backend.root])
-    return stdout
+    return _symbols(mode="definition", name=name)
 
 
 @mcp.tool()
 def find_references(name: str, filepath: str, line: int) -> str:
     """Find all usages of a symbol (function or class)."""
-    payload = os.path.join(backend.scratch, "payload.json")
-    backend.put_file(payload, json.dumps({
-        "name": name,
-        "filepath": filepath,
-        "line": line,
-        # refs.py walks `root` looking for importers; "/" in the container,
-        # the testbed only when we run on the host.
-        "root": backend.root
-    }))
-    _, stdout, stderr = backend.exec(["timeout", "-s", "KILL", "10",
-                                      backend.python, backend.refs_script,
-                                      payload])
-    return stdout + stderr
+    return _symbols(mode="references", name=name, filepath=filepath, line=line)
 
 
 @mcp.tool()
