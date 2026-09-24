@@ -1,9 +1,9 @@
 import json
 import logging
-import random
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Any, TypeVar
+from typing import Any, TypeVar
 
 import httpx
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
+TRANSIENT_STATUS_CODES = {402, 429, 500, 502, 503, 504}
 
 
 def with_retry(
@@ -41,7 +41,21 @@ def with_retry(
                         logger.error(f"Non-retryable HTTP {status_code}: {e.response.text}")
                         raise e
 
-                    retry_after = e.response.headers.get("Retry-After")
+                    retry_after = e.response.headers.get("Retry-After") \
+                                    or e.response.headers.get("retry-after")
+
+                    if not retry_after:
+                            try:
+                                data = e.response.json()
+                                retry_after = (
+                                    data.get("error", {})
+                                        .get("metadata", {})
+                                        .get("headers", {})
+                                        .get("Retry-After")
+                                )
+                            except Exception:
+                                pass
+
                     if retry_after and retry_after.isdigit():
                         sleep_time = float(retry_after)
                         logger.warning(
