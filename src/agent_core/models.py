@@ -1,7 +1,11 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Literal, Optional, Protocol
+from typing import Literal, Optional, Protocol
 
 from pydantic import BaseModel, Field
+from pydantic.dataclasses import dataclass
+from typing import List, Literal, Optional, Protocol
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SandboxConfig(BaseModel):
@@ -10,6 +14,8 @@ class SandboxConfig(BaseModel):
     Uses allowlist approach: only imports in authorized_imports are
     allowed. Everything else is blocked by default.
     """
+    #authorized_imports: list[str] = Field(default_factory=lambda: [
+    model_config = ConfigDict(extra="forbid")
     authorized_imports: List[str] = Field(default_factory=lambda: [
         "math", "math.*",
         "collections", "collections.*",
@@ -21,11 +27,11 @@ class SandboxConfig(BaseModel):
         "datetime", "datetime.*",
         "array", "cmath",
     ])
-    allowed_directories: List[str] = Field(default_factory=lambda: [
+    allowed_directories: list[str] = Field(default_factory=lambda: [
         "/testbed", "/tmp/agent"
     ])
-    max_execution_time_seconds: int = 30
-    max_memory_mb: int = 512
+    max_execution_time_seconds: int = Field(default=30, gt=0)
+    max_memory_mb: int = Field(default=512, gt=0)
 
 
 class MBPPTaskInput(BaseModel):
@@ -33,8 +39,8 @@ class MBPPTaskInput(BaseModel):
     task_id: int
     task_definition: str
     function_definition: str
-    test_imports: List[str] = Field(default_factory=list)
-    test_list: List[str] = Field(default_factory=list)
+    test_imports: list[str] = Field(default_factory=list)
+    test_list: list[str] = Field(default_factory=list)
 
 
 class SWEBenchTaskInput(BaseModel):
@@ -195,7 +201,7 @@ class SolutionOutput(BaseModel):
         ...,
         description="Wall-clock time from agent start to finish",
     )
-    steps: List[StepMetrics] = Field(
+    steps: list[StepMetrics] = Field(
         default_factory=list,
         description="Per-step metrics, one entry per agent iteration",
     )
@@ -219,7 +225,6 @@ class SolutionOutput(BaseModel):
         ),
     )
 
-
 class ExecutionResult(BaseModel):
     stdout: str = ""
     stderr: str = ""
@@ -227,6 +232,15 @@ class ExecutionResult(BaseModel):
     final_answer: Optional[str] = None
     timed_out: bool = False
     memory_exceeded: bool = False
+
+    def __str__(self) -> str:
+        parts = []
+        for label in ("stdout", "stderr", "error", "final_answer"):
+            if value := getattr(self, label):
+                parts.append(f"--- {label} ---\n{value.rstrip()}")
+        # if flags := [f for f in ("timed_out", "memory_exceeded") if getattr(self, f)]:
+        #     parts.append("flags: " + ", ".join(flags))
+        return "\n".join(parts) or ""
 
 
 class SandboxProtocol(Protocol):
@@ -236,5 +250,64 @@ class SandboxProtocol(Protocol):
     def get_manual(self) -> str:
         ...
 
-    def close(self) -> None:
+    def __enter__(self):
         ...
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        ...
+
+######### LLM #########
+
+@dataclass
+class Message:
+    role: Literal["system", "user", "assistant"]
+    content: str
+
+@dataclass
+class LLMAnswer:
+    content: str
+    model: str
+    provider: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    retries: int = 0
+    latency_ms: float = 0.0
+    finish_reason: str | None = None
+
+class BaseProvider (ABC):
+    """Abstarct Base Class for LLM provider"""
+    keys: list[str]
+    MODEL_MAP: dict[str, str]
+
+    def resolve_model(self, model: str) -> str:
+        """Translates a generic model alias to the provider's exact string."""
+        return self.MODEL_MAP.get(model, model)
+
+    def supports_model(self, model: str) -> bool:
+        """Checks if the model is either mapped or explicitly supported."""
+        return model in self.MODEL_MAP \
+            or model in getattr(self, "SUPPORTED_MODELS", [])
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    @abstractmethod
+    def chat(
+        self,
+        messages: list[Message],
+        model: str,
+        stop_sequences: list[str] | None = None,
+        temperature: float = 0.2,
+        max_tokens: int = 2048
+    ) -> LLMAnswer:
+        pass
+
+    @abstractmethod
+    def load_keys(self) -> list[str]:
+        pass
+
+    def next_key(self) -> None:
+        self.key_index = (self.key_index + 1) % len(self.keys)
+        self.curr_key = self.keys[self.key_index]
