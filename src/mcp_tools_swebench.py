@@ -8,6 +8,7 @@ import atexit
 import signal
 import tarfile
 import tempfile
+import itertools
 import importlib
 import subprocess
 import contextlib
@@ -197,12 +198,43 @@ def _symbols(**payload) -> str:
     return stdout + stderr
 
 
+def _has_wildcard(part: str) -> bool:
+    return any(c in part for c in "*?[")
+
+
+def _split_file_pattern(file_pattern: str) -> Tuple[str, Optional[str]]:
+    """Split a path glob such as "src/**/*.py" into the path grep should walk
+    ("src") and the glob --include matches file names against ("*.py").
+
+    grep's --include only ever sees file names, so directories have to be
+    selected through the search path instead. Directory components from the
+    first wildcard on are dropped: grep -r already recurses into all of them.
+    """
+    if not _has_wildcard(file_pattern):
+        return file_pattern, None
+    head, name = os.path.split(file_pattern)
+    fixed = itertools.takewhile(lambda part: not _has_wildcard(part),
+                                head.split("/"))
+    return "/".join(fixed), name
+
+
 @mcp.tool()
 def search_code(pattern: str, file_pattern: str) -> str:
     """Perform a grep-like search in the codebase."""
-    _, stdout, _ = backend.exec(["grep", "-rnIs", pattern,
-                                 f"--include={file_pattern}", backend.root])
-    return _as_rows(stdout)
+    directory, name = _split_file_pattern(file_pattern)
+    print(directory, name)
+    # -H: keep the file name even when file_pattern points at a single file.
+    cmd = ["grep", "-rnIH", "-e", pattern]
+    if name:
+        cmd.append(f"--include={name}")
+    # An absolute file_pattern or a ".." would make join() escape the root.
+    path = os.path.normpath(os.path.join(backend.root, directory))
+    if os.path.commonpath([backend.root, path]) != backend.root:
+        return f"{file_pattern} is outside the codebase ({backend.root})"
+    _, stdout, stderr = backend.exec(cmd + ["--", path])
+    # grep exits with 2 as soon as one file is unreadable, even when it found
+    # matches elsewhere: only surface stderr when there is nothing else.
+    return _as_rows(stdout) or stderr.strip() or "No match"
 
 
 @mcp.tool()
@@ -255,7 +287,8 @@ if __name__ == "__main__":
     # print(run_command("touch /testbed/test.tmp", "/"))
     # edit_file("/test", "Hello", "Goodbye")
     # print(run_command("cat test", "/"))
-    # print(search_code("Hello", "tes"))
+    # print(backend.root)
+    # print(search_code("def", "src/**/*.py"))
     # print(search_function_or_class_definition_in_code("test"))
     # print(find_references("enclosing_scope", "/refs.py", 48))
     # print(run_tests())
