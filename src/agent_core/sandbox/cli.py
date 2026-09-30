@@ -111,8 +111,9 @@ def make_proxy(client, tool, loop):
         result = future.result()
 
         if hasattr(result, "content") and result.content:
-            text_contents = [c.text for c in result.content if hasattr(c, "text")]
-            return "\n".join(text_contents) if text_contents else result.content
+            return result.content
+            # text_contents = [c.text for c in result.content if hasattr(c, "text")]
+            # return "\n".join(text_contents) if text_contents else result.content
         return result
 
     return proxy

@@ -41,7 +41,7 @@ AVAILABLE TOOLS IN PYTHON EXECUTION NAMESPACE:
 -find_references(name: str, filepath: str, line: int) -> str: Search symbol references across files.
 -run_tests() -> str: Execute evaluation test script for the repository.
 -get_patch() -> str: Retrieve current unified git diff patch of modified files.
--run_command(command: str | list, workdir: str) -> dict: Run arbitrary shell command in workspace.
+-run_command(command: str | list, workdir: str) -> dict: Run arbitrary shell command in workspace. Python command should be ran with python and not python3
 -final_answer(patch: str) -> None: Terminate loop and submit final patch.
 
 SANDBOX GUARDRAILS & EXECUTION RULES:
@@ -221,7 +221,7 @@ async def run_swebench_agent(
                             messages=messages,
                             model=model_name,
                             temperature=.2,
-                            max_tokens=1000,
+                            max_tokens=2048,
                         )
                         total_requests += 1 + answer.retries
                     except Exception as e:
@@ -248,6 +248,16 @@ async def run_swebench_agent(
                         break
 
                     exec_result = sb.execute(extracted_code)
+
+                    if exec_result.error and "unterminated" in str(exec_result.error) and "string literal" in str(exec_result.error):
+                        sandbox_output = (
+                            "Your code was cut off mid-generation because it was too long — this is a "
+                            "truncation issue, not a quoting mistake. Do not retry the same large script. "
+                            "Instead: write something much shorter, split it into a smaller step, or "
+                            "better yet, skip the custom repro script entirely and call run_tests() to "
+                            "check whether the existing test suite already reproduces this bug."
+                        )
+                        continue
 
                     if exec_result.final_answer is not None:
                         final_patch = str(exec_result.final_answer)
