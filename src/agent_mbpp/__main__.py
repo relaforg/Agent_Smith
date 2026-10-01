@@ -13,7 +13,7 @@ from mcp import Client, StdioServerParameters, stdio_client
 from models_public import MBPPTaskInput, SolutionOutput, StepMetrics
 from src.agent_core.llm.llm_client import LLMClient
 from src.agent_core.models import Message, SandboxConfig
-from src.agent_core.sandbox.cli import extract_config, make_proxy
+from src.agent_core.cli import extract_config, make_proxy
 from src.agent_core.sandbox.core import Sandbox
 
 SYSTEM_PROMPT = """You are an expert Python developer. Your goal is to write a Python function that solves the requested task through a strict two-turn process.
@@ -92,7 +92,8 @@ async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gp
         async with Client(stdio_client(server_params)) as client:
             tools_list = await client.list_tools()
             tools = {
-                t.name.replace("-", "_"): make_proxy(client, t)
+                t.name.replace("-", "_"): make_proxy(
+                    client, t, asyncio.get_running_loop())
                 for t in tools_list.tools
             }
 
