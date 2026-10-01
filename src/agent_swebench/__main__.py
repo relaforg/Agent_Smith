@@ -14,7 +14,7 @@ from mcp import Client, StdioServerParameters, stdio_client
 from models_public import SolutionOutput, StepMetrics, SWEBenchTaskInput
 from src.agent_core.llm.llm_client import LLMClient
 from src.agent_core.models import Message, SandboxConfig
-from src.agent_core.sandbox.cli import extract_config, make_proxy
+from src.agent_core.cli import extract_config, make_proxy
 from src.agent_core.sandbox.core import Sandbox
 
 SYSTEM_PROMPT_OLD = """You are an autonomous software engineer tasked with fixing bugs in repository codebases.

@@ -3,6 +3,7 @@ import readline
 import json
 import shlex
 import anyio
+import asyncio
 import inspect
 import contextlib
 import signal
@@ -70,12 +71,20 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
     ])
 
 
-def _make_proxy(client: Client, tool: types.Tool) -> Callable:
+def make_proxy(client: Client, tool: types.Tool,
+               loop: asyncio.AbstractEventLoop) -> Callable:
+    """Synchronous proxy for an MCP tool, callable from any thread while
+    `loop` (the one running `client`) is alive."""
     sig = _signature_from_schema(tool.input_schema)
+    # Non-object return types (dict[str, T], list, str...) are wrapped by the
+    # server as {"result": value}
+    wrapped = set((tool.output_schema or {}).get("properties", {})) \
+        == {"result"}
 
     def proxy(*args, **kwargs):
         arguments = dict(sig.bind(*args, **kwargs).arguments)
-        result = anyio.from_thread.run(client.call_tool, tool.name, arguments)
+        result = asyncio.run_coroutine_threadsafe(
+            client.call_tool(tool.name, arguments), loop).result()
         text = "\n".join(
             block.text for block in result.content
             if isinstance(block, types.TextContent)
@@ -83,7 +92,8 @@ def _make_proxy(client: Client, tool: types.Tool) -> Callable:
         if result.is_error:
             raise RuntimeError(text or f"{tool.name} failed")
         if result.structured_content is not None:
-            return result.structured_content
+            return result.structured_content.get("result") if wrapped \
+                else result.structured_content
         return text
 
     proxy.__name__ = tool.name
@@ -138,9 +148,10 @@ async def run():
         target = get_target(args)
         client_ctx = Client(
             target) if target is not None else contextlib.nullcontext()
+        loop = asyncio.get_running_loop()
         async with client_ctx as client:
             tools = {} if client is None else {
-                t.name.replace("-", "_"): _make_proxy(client, t) for t in (
+                t.name.replace("-", "_"): make_proxy(client, t, loop) for t in (
                     await client.list_tools()).tools
             }
 

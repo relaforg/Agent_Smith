@@ -14,6 +14,7 @@ import subprocess
 import contextlib
 import docker
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 
@@ -155,29 +156,37 @@ signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 def read_file(filepath: str, start_line: int, end_line: int) -> str:
     """Read the content of a file with line numbers."""
     if start_line > end_line:
-        return "Invalid range"
-    _, stdout, stderr = backend.exec(
+        raise ToolError(f"Invalid range: start_line ({start_line}) "
+                        f"> end_line ({end_line})")
+    exit_code, stdout, stderr = backend.exec(
         ["sed", "-n", f"{start_line},{end_line}p", filepath])
+    if exit_code != 0:
+        raise ToolError(stderr.strip() or f"cannot read {filepath}")
     return "\n".join([
         f"{i + start_line}: {line}"
         for (i, line) in enumerate(stdout.splitlines())
-    ]) if stdout else stderr
+    ])
 
 
 @mcp.tool()
 def edit_file(filepath: str, old_str: str, new_str: str):
     """Replace an exact string in a file with a new string."""
-    _, content, _ = backend.exec(["cat", filepath])
-    if not content:
-        return
+    exit_code, content, stderr = backend.exec(["cat", filepath])
+    if exit_code != 0:
+        raise ToolError(stderr.strip() or f"cannot read {filepath}")
+    if old_str not in content:
+        raise ToolError(f"old_str not found in {filepath}")
     backend.put_file(filepath, content.replace(old_str, new_str))
 
 
 @mcp.tool()
 def list_files(directory: str, pattern: str) -> List[str]:
     """List files in a directory matching a given pattern."""
-    _, stdout, _ = backend.exec(["find", directory, "-maxdepth", "1",
-                                 "-name", pattern, "-type", "f"])
+    exit_code, stdout, stderr = backend.exec(["find", directory, "-maxdepth",
+                                              "1", "-name", pattern,
+                                              "-type", "f"])
+    if exit_code != 0 and not stdout:
+        raise ToolError(stderr.strip() or f"cannot list {directory}")
     return stdout.splitlines()
 
 
@@ -222,7 +231,6 @@ def _split_file_pattern(file_pattern: str) -> Tuple[str, Optional[str]]:
 def search_code(pattern: str, file_pattern: str) -> str:
     """Perform a grep-like search in the codebase."""
     directory, name = _split_file_pattern(file_pattern)
-    print(directory, name)
     # -H: keep the file name even when file_pattern points at a single file.
     cmd = ["grep", "-rnIH", "-e", pattern]
     if name:
@@ -230,11 +238,15 @@ def search_code(pattern: str, file_pattern: str) -> str:
     # An absolute file_pattern or a ".." would make join() escape the root.
     path = os.path.normpath(os.path.join(backend.root, directory))
     if os.path.commonpath([backend.root, path]) != backend.root:
-        return f"{file_pattern} is outside the codebase ({backend.root})"
+        raise ToolError(
+            f"{file_pattern} is outside the codebase ({backend.root})")
     _, stdout, stderr = backend.exec(cmd + ["--", path])
     # grep exits with 2 as soon as one file is unreadable, even when it found
     # matches elsewhere: only surface stderr when there is nothing else.
-    return _as_rows(stdout) or stderr.strip() or "No match"
+    rows = _as_rows(stdout)
+    if not rows and stderr.strip():
+        raise ToolError(stderr.strip())
+    return rows or "No match"
 
 
 @mcp.tool()
@@ -253,7 +265,7 @@ def find_references(name: str, filepath: str, line: int) -> str:
 def run_tests() -> str:
     """Execute the evaluation script."""
     if not EVAL_SCRIPT:
-        return "No evaluation script configured"
+        raise ToolError("No evaluation script configured")
     # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
     _, stdout, stderr = backend.exec(["bash", "-c", EVAL_SCRIPT])
     return stdout + stderr
