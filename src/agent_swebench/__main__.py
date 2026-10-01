@@ -105,12 +105,12 @@ TOOLS (all arguments are required)
 - run_tests() -> str: runs the evaluation script. Output can be long; print only what you need (e.g. the last 40 lines).
 - get_patch() -> str: current git diff.
 -run_command(command: list[str] | str, workdir: str) -> dict: Run a command in the workspace.
-  ALWAYS pass command as a LIST, e.g. ["python3", "-c", script], not a shell string.
+  ALWAYS pass command as a LIST, e.g. ["python", "-c", script], not a shell string.
   A list is passed directly to the process with no shell parsing, so you can put any
   Python code (multi-line, with quotes) into a normal triple-quoted string as one
   argument, with zero escaping needed. Do NOT build shell strings with heredocs,
   nested quotes, or `bash -c "..."` — this reliably produces syntax errors.
-  To run a one-off script without creating a file: run_command(["python3", "-c", code], workdir).
+  To run a one-off script without creating a file: run_command(["python", "-c", code], workdir).
 - final_answer(patch) -> None: submits and ends the session.
 
 REMINDER:
@@ -119,6 +119,14 @@ Always wrap a call in print(...) if you want to see its result: print(run_tests(
 -If a standalone script fails due to a missing/broken dependency unrelated to the bug
  (ImportError, ModuleNotFoundError), do NOT try to mock or monkey-patch it — abandon
  the repro script and rely on run_tests() instead.
+-NEVER index directly into a tool's return value on first use (e.g. run_command(...)["stdout"]).
+ Assign it to a variable and print() the WHOLE result first:
+     result = run_command(...)
+     print(result)
+ Only index into a specific key once you've seen the full dict and confirmed it has what
+ you expect. A command that "produces no output" often failed — the real error is in
+ ["stderr"] or ["exit_code"], and discarding them makes failures invisible.
+ -Only your last ```python ...``` block will be executed
 
 WORKFLOW
 1. Locate: search_code / search_function_or_class_definition_in_code, then read_file the relevant lines.
@@ -131,9 +139,9 @@ WORKFLOW
 def extract_python_code(raw_text: str) -> str:
     """Extract Python code from markdown code blocks or return trimmed text."""
     if "```python" in raw_text:
-        return raw_text.split("```python")[1].split("```")[0].strip()
+        return raw_text.split("```python")[-1].split("```")[0].strip()
     elif "```" in raw_text:
-        return raw_text.split("```")[1].split("```")[0].strip()
+        return raw_text.split("```")[-1].split("```")[0].strip()
     return raw_text.strip()
 
 
@@ -207,11 +215,13 @@ async def run_swebench_agent(
             final_patch = ""
             error_message: Optional[str] = None
             total_requests = 0
+            last_code = None
+            repeat_count = 0
 
             with Sandbox(config, tools) as sb:
 
-                last_code = None
-                repeat_count = 0
+                # sb.execute('print(run_command(["which", "python", "python3"], "/testbed"))')
+                # sb.execute('print(run_command(["python", "-c", "import sympy; print(sympy.__version__)"], "/testbed"))')
 
                 for i in range(1, max_iterations + 1):
                     step_start_time = time.perf_counter()

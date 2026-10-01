@@ -267,8 +267,10 @@ def run_tests() -> str:
     if not EVAL_SCRIPT:
         raise ToolError("No evaluation script configured")
     # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
-    _, stdout, stderr = backend.exec(["bash", "-c", EVAL_SCRIPT])
-    return stdout + stderr
+    # _, stdout, stderr = backend.exec(["bash", "-c", EVAL_SCRIPT])
+    _, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
+    stdout = stdout.strip("============================= test process starts ==============================")[1]
+    return stdout # + stderr
 
 
 @mcp.tool()
