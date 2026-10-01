@@ -17,7 +17,7 @@ from src.agent_core.models import Message, SandboxConfig
 from src.agent_core.cli import extract_config, make_proxy
 from src.agent_core.sandbox.core import Sandbox
 
-SYSTEM_PROMPT = """You are an autonomous software engineer tasked with fixing bugs in repository codebases.
+SYSTEM_PROMPT_OLD = """You are an autonomous software engineer tasked with fixing bugs in repository codebases.
 You operate inside an interactive Python sandbox where MCP repository tools and helpers are directly exposed as Python functions.
 
 CRITICAL FORMATTING INSTRUCTIONS:
@@ -41,7 +41,7 @@ AVAILABLE TOOLS IN PYTHON EXECUTION NAMESPACE:
 -find_references(name: str, filepath: str, line: int) -> str: Search symbol references across files.
 -run_tests() -> str: Execute evaluation test script for the repository.
 -get_patch() -> str: Retrieve current unified git diff patch of modified files.
--run_command(command: str | list, workdir: str) -> dict: Run arbitrary shell command in workspace.
+-run_command(command: str | list, workdir: str) -> dict: Run arbitrary shell command in workspace. Python command should be ran with python and not python3
 -final_answer(patch: str) -> None: Terminate loop and submit final patch.
 
 SANDBOX GUARDRAILS & EXECUTION RULES:
@@ -75,6 +75,59 @@ RULES:
 """
 
 
+SYSTEM_PROMPT = """You are an autonomous software engineer fixing a bug in a repository.
+You work in a Python sandbox where repository tools are pre-loaded as functions.
+
+OUTPUT FORMAT
+- Reply with exactly ONE ```python ... ``` block per turn. Only the first block is executed; text outside it is ignored.
+- Never emit JSON/XML tool calls. Call the functions directly and print() results you want to see.
+- Keep each block short: one logical action, no long comments, never copy tool output into comments.
+- You cannot see the output of a block until your next turn. Do not act on results you have not seen.
+
+ENVIRONMENT FACTS
+- The repository is checked out at /testbed. Use absolute paths everywhere (e.g. /testbed/django/http/response.py).
+- run_command's workdir must be absolute, e.g. "/testbed". Relative workdirs fail.
+- The sandbox forbids ALL imports (os, sys, re, ...). Do not use open(); Do not import os; it does not touch the repository.
+  To read use read_file, to modify use edit_file, for anything else use run_command.
+- Project dependencies may be missing, so ad-hoc scripts that import the project can fail (e.g. ModuleNotFoundError).
+  Do not spend turns fixing the environment. Verify with run_tests() instead.
+- Never create files inside /testbed (they pollute the patch). Scratch files go in /tmp.
+
+TOOLS (all arguments are required)
+- read_file(filepath, start_line, end_line) -> str: numbered lines.
+- edit_file(filepath, old_str, new_str) -> None: exact string replacement of ALL occurrences.
+  It fails SILENTLY if old_str does not match (whitespace included), so always check the result with get_patch() or read_file().
+  Include enough surrounding lines in old_str to make it unique.
+- list_files(directory, pattern) -> list[str]: non-recursive, pattern like "*.py".
+- search_code(pattern, file_pattern) -> str: grep, file_pattern like "*.py" or "django/http/*.py".
+- search_function_or_class_definition_in_code(name) -> str
+- find_references(name, filepath, line) -> str
+- run_tests() -> str: runs the evaluation script. Output can be long; print only what you need (e.g. the last 40 lines).
+- get_patch() -> str: current git diff.
+-run_command(command: list[str] | str, workdir: str) -> dict: Run a command in the workspace.
+  ALWAYS pass command as a LIST, e.g. ["python3", "-c", script], not a shell string.
+  A list is passed directly to the process with no shell parsing, so you can put any
+  Python code (multi-line, with quotes) into a normal triple-quoted string as one
+  argument, with zero escaping needed. Do NOT build shell strings with heredocs,
+  nested quotes, or `bash -c "..."` — this reliably produces syntax errors.
+  To run a one-off script without creating a file: run_command(["python3", "-c", code], workdir).
+- final_answer(patch) -> None: submits and ends the session.
+
+REMINDER:
+-this sandbox uses exec(), not a REPL — return values are NOT auto-printed.
+Always wrap a call in print(...) if you want to see its result: print(run_tests()), print(read_file(...)).
+-If a standalone script fails due to a missing/broken dependency unrelated to the bug
+ (ImportError, ModuleNotFoundError), do NOT try to mock or monkey-patch it — abandon
+ the repro script and rely on run_tests() instead.
+
+WORKFLOW
+1. Locate: search_code / search_function_or_class_definition_in_code, then read_file the relevant lines.
+2. Diagnose the root cause before editing. Decide the smallest change that fixes it.
+3. Edit with edit_file. You MUST modify a source file; explaining the fix is not enough.
+4. Verify: print(get_patch()) to confirm the edit landed, then run_tests().
+5. Submit only when tests pass (or you have exhausted reasonable options).
+"""
+
 def extract_python_code(raw_text: str) -> str:
     """Extract Python code from markdown code blocks or return trimmed text."""
     if "```python" in raw_text:
@@ -97,7 +150,7 @@ def _write_output(path: str, content: str) -> None:
 async def run_swebench_agent(
     task_file: str,
     output_file: str,
-    model_name: str = "gpt-oss-120b",
+    model_name: str = "gemma-26",
     provider_url: Optional[str] = None,
     max_iterations: int = 30,
 ):
@@ -134,7 +187,7 @@ async def run_swebench_agent(
         # Run synchronous loop inside a separate worker thread
         def execution_loop():
             start_time = time.perf_counter()
-            llm_client = LLMClient(base_url=provider_url) if provider_url else LLMClient()
+            llm_client = LLMClient()
             steps: list[StepMetrics] = []
 
             initial_user_prompt = (
@@ -156,6 +209,10 @@ async def run_swebench_agent(
             total_requests = 0
 
             with Sandbox(config, tools) as sb:
+
+                last_code = None
+                repeat_count = 0
+
                 for i in range(1, max_iterations + 1):
                     step_start_time = time.perf_counter()
 
@@ -163,8 +220,8 @@ async def run_swebench_agent(
                         answer = llm_client.chat(
                             messages=messages,
                             model=model_name,
-                            temperature=0.1,
-                            max_tokens=1000,
+                            temperature=.2,
+                            max_tokens=2048,
                         )
                         total_requests += 1 + answer.retries
                     except Exception as e:
@@ -174,7 +231,33 @@ async def run_swebench_agent(
                     llm_output = answer.content
                     extracted_code = extract_python_code(llm_output)
 
+                    if extracted_code.strip() == (last_code or "").strip():
+                        repeat_count += 1
+                    else:
+                        repeat_count = 0
+                    last_code = extracted_code
+
+                    if repeat_count >= 1:
+                        sandbox_output = (
+                            "You repeated the exact same code as last turn and got the exact same error. "
+                            "Repeating it again will not help. Stop trying to run a standalone script"
+                            "understand the actual bug before writing any more repro scripts."
+                        )
+                    if repeat_count >= 3:
+                        error_message = "Aborted: agent stuck repeating identical actions."
+                        break
+
                     exec_result = sb.execute(extracted_code)
+
+                    if exec_result.error and "unterminated" in str(exec_result.error) and "string literal" in str(exec_result.error):
+                        sandbox_output = (
+                            "Your code was cut off mid-generation because it was too long — this is a "
+                            "truncation issue, not a quoting mistake. Do not retry the same large script. "
+                            "Instead: write something much shorter, split it into a smaller step, or "
+                            "better yet, skip the custom repro script entirely and call run_tests() to "
+                            "check whether the existing test suite already reproduces this bug."
+                        )
+                        continue
 
                     if exec_result.final_answer is not None:
                         final_patch = str(exec_result.final_answer)
@@ -227,6 +310,8 @@ async def run_swebench_agent(
 
                     messages.append(Message(role="user", content=user_feedback))
 
+                    time.sleep(5)
+
             total_time_seconds = time.perf_counter() - start_time
             total_input_tokens = sum(s.input_tokens for s in steps)
             total_output_tokens = sum(s.output_tokens for s in steps)
@@ -260,7 +345,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SWE-bench Task Solver Agent")
     parser.add_argument("--task-file", "--task-path", required=True, help="Path to swebench task.json")
     parser.add_argument("--output", "--solution-path", required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="gemma", help="Model identifier to use")
+    parser.add_argument("--model-name", default="gemma-26", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
     args = parser.parse_args()
 
