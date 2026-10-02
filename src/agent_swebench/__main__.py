@@ -316,6 +316,8 @@ async def run_swebench_agent(
 
                     messages.append(Message(role="user", content=user_feedback))
 
+                    time.sleep(5)
+
             total_time_seconds = time.perf_counter() - start_time
             total_input_tokens = sum(s.input_tokens for s in steps)
             total_output_tokens = sum(s.output_tokens for s in steps)
