@@ -127,6 +127,7 @@ Always wrap a call in print(...) if you want to see its result: print(run_tests(
  you expect. A command that "produces no output" often failed — the real error is in
  ["stderr"] or ["exit_code"], and discarding them makes failures invisible.
  -Only your last ```python ...``` block will be executed
+ -The sandbox is fully closed to internet
 
 WORKFLOW
 1. Locate: search_code / search_function_or_class_definition_in_code, then read_file the relevant lines.
@@ -319,8 +320,6 @@ async def run_swebench_agent(
                     )
 
                     messages.append(Message(role="user", content=user_feedback))
-
-                    time.sleep(5)
 
             total_time_seconds = time.perf_counter() - start_time
             total_input_tokens = sum(s.input_tokens for s in steps)

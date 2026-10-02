@@ -24,6 +24,8 @@ class OpenRouterProvider(BaseProvider):
                     "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
                     "cohere": "cohere/command-r-7b-12-2024:free",
                     "nemotron": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+                    "codestral": "mistralai/codestral-2508",
+                    "ministral": "mistralai/ministral-14b-2512"
                 }
 
         self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
@@ -63,6 +65,7 @@ class OpenRouterProvider(BaseProvider):
             start = time.perf_counter()
 
             try:
+                print(self.curr_key)
                 response = self.client.post(
                     f"{self.base_url}/chat/completions",
                     headers={
