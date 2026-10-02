@@ -5,6 +5,7 @@ from typing import List, Dict, Optional, Any
 from src.agent_core.models import BaseProvider, Message, LLMAnswer
 from src.agent_core.llm.providers.groq import GroqProvider
 from src.agent_core.llm.providers.openrouter import OpenRouterProvider
+from src.agent_core.llm.providers.mistral import MistralProvider
 from src.agent_core.llm.retry import with_retry
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class LLMClient:
 
     def initialize_providers(self) -> None:
         """Initializes available providers based on present API keys."""
-        candidate_providers = [GroqProvider, OpenRouterProvider]
+        candidate_providers = [GroqProvider, OpenRouterProvider, MistralProvider]
 
         for provider_cls in candidate_providers:
             try:

@@ -262,13 +262,14 @@ def find_references(name: str, filepath: str, line: int) -> str:
 
 
 @mcp.tool()
-def run_tests() -> str:
+def run_tests() -> tuple[int, str]:
     """Execute the evaluation script."""
     if not EVAL_SCRIPT:
         raise ToolError("No evaluation script configured")
     # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
-    _, stdout, stderr = backend.exec(["bash", "-c", EVAL_SCRIPT])
-    return stdout + stderr
+    exit, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
+    stdout = stdout.split("============================= test process starts ==============================")[1]
+    return (exit, stdout if len(stdout) < 10000 else "logs too long")
 
 
 @mcp.tool()

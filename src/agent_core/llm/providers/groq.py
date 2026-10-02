@@ -27,13 +27,7 @@ class GroqProvider(BaseProvider):
             "allam-7b": "allam-2-7b",
         }
 
-        self.SUPPORTED_MODELS: set[str] = {
-            "openai/gpt-oss-120b",
-            "openai/gpt-oss-20b",
-            "qwen/qwen3.8-27b",
-            "qwen/qwen3.6-27b",
-            "allam-2-7b",
-        }
+        self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
 
     @property
     def name(self) -> str:
