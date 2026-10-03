@@ -268,8 +268,7 @@ def run_tests() -> tuple[int, str]:
         raise ToolError("No evaluation script configured")
     # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
     exit, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
-    stdout = stdout.split("============================= test process starts ==============================")[1]
-    return (exit, stdout if len(stdout) < 10000 else "logs too long")
+    return (exit, stdout)
 
 
 @mcp.tool()
