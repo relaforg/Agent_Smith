@@ -65,7 +65,6 @@ class OpenRouterProvider(BaseProvider):
             start = time.perf_counter()
 
             try:
-                print(self.curr_key)
                 response = self.client.post(
                     f"{self.base_url}/chat/completions",
                     headers={
@@ -96,9 +95,8 @@ class OpenRouterProvider(BaseProvider):
                 )
 
             except httpx.HTTPStatusError as e:
-                # Catch rate limits (429) AND transient server failures (500, 502, 503, 504)
                 if e.response.status_code in (429, 500, 502, 503, 504):
-                    time.sleep(2 ** min(attempt, 4))  # Exponential backoff
+                    time.sleep(2 ** min(attempt, 4))
                     self.next_key()
                     continue
                 raise
