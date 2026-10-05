@@ -13,8 +13,8 @@ import importlib
 import subprocess
 import contextlib
 import docker
-from mcp.server import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 
@@ -29,7 +29,7 @@ EVAL_SCRIPT = os.environ.get("EVAL_SCRIPT")
 DOCKER_TESTBED = "/testbed"
 SYMBOL_TIMEOUT = "30"
 
-mcp = MCPServer("swebench_mcp")
+mcp = FastMCP("swebench_mcp")
 
 
 def _dec(raw: Optional[bytes]) -> str:
@@ -262,15 +262,13 @@ def find_references(name: str, filepath: str, line: int) -> str:
 
 
 @mcp.tool()
-def run_tests() -> str:
+def run_tests() -> tuple[int, str]:
     """Execute the evaluation script."""
     if not EVAL_SCRIPT:
         raise ToolError("No evaluation script configured")
     # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
-    # _, stdout, stderr = backend.exec(["bash", "-c", EVAL_SCRIPT])
-    _, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
-    stdout = stdout.strip("============================= test process starts ==============================")[1]
-    return stdout # + stderr
+    exit, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
+    return (exit, stdout)
 
 
 @mcp.tool()

@@ -10,9 +10,9 @@ import signal
 import sys
 from argparse import ArgumentParser
 from agent_core.sandbox.core import Sandbox, SandboxConfig, SandboxDied
-from mcp import Client, stdio_client, StdioServerParameters, types
-from mcp.client import Transport
-from typing import Callable
+from mcp import ClientSession, stdio_client, StdioServerParameters, types
+from mcp.client.streamable_http import streamable_http_client
+from typing import AsyncIterator, Callable
 from pydantic import ValidationError
 
 HISTORY_FILE = ".agent_smith_history"
@@ -44,9 +44,9 @@ def extract_config(path: str) -> SandboxConfig | None:
     return None
 
 
-def get_target(args) -> str | Transport | None:
+def get_target(args) -> contextlib.AbstractAsyncContextManager | None:
     if args.mcp_server:
-        return args.mcp_server
+        return streamable_http_client(args.mcp_server)
 
     if args.mcp_stdio is None:
         return None
@@ -60,6 +60,18 @@ def get_target(args) -> str | Transport | None:
     return stdio_client(StdioServerParameters(command=command, args=rest))
 
 
+@contextlib.asynccontextmanager
+async def open_session(
+        transport: contextlib.AbstractAsyncContextManager
+) -> AsyncIterator[ClientSession]:
+    """Open an initialized MCP session over `transport`. stdio_client yields
+    (read, write), streamable_http_client (read, write, get_session_id)."""
+    async with transport as (read, write, *_):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
+
+
 def _signature_from_schema(schema: dict) -> inspect.Signature:
     required = schema.get("required", [])
     return inspect.Signature([
@@ -71,14 +83,14 @@ def _signature_from_schema(schema: dict) -> inspect.Signature:
     ])
 
 
-def make_proxy(client: Client, tool: types.Tool,
+def make_proxy(client: ClientSession, tool: types.Tool,
                loop: asyncio.AbstractEventLoop) -> Callable:
     """Synchronous proxy for an MCP tool, callable from any thread while
     `loop` (the one running `client`) is alive."""
-    sig = _signature_from_schema(tool.input_schema)
+    sig = _signature_from_schema(tool.inputSchema)
     # Non-object return types (dict[str, T], list, str...) are wrapped by the
     # server as {"result": value}
-    wrapped = set((tool.output_schema or {}).get("properties", {})) \
+    wrapped = set((tool.outputSchema or {}).get("properties", {})) \
         == {"result"}
 
     def proxy(*args, **kwargs):
@@ -89,16 +101,16 @@ def make_proxy(client: Client, tool: types.Tool,
             block.text for block in result.content
             if isinstance(block, types.TextContent)
         )
-        if result.is_error:
+        if result.isError:
             raise RuntimeError(text or f"{tool.name} failed")
-        if result.structured_content is not None:
-            return result.structured_content.get("result") if wrapped \
-                else result.structured_content
+        if result.structuredContent is not None:
+            return result.structuredContent.get("result") if wrapped \
+                else result.structuredContent
         return text
 
     proxy.__name__ = tool.name
     proxy.__doc__ = tool.description
-    proxy.__signature__ = _signature_from_schema(tool.input_schema)
+    proxy.__signature__ = _signature_from_schema(tool.inputSchema)
     return proxy
 
 
@@ -146,7 +158,7 @@ async def run():
 
     try:
         target = get_target(args)
-        client_ctx = Client(
+        client_ctx = open_session(
             target) if target is not None else contextlib.nullcontext()
         loop = asyncio.get_running_loop()
         async with client_ctx as client:

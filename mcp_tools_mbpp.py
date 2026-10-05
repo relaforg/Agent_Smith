@@ -7,15 +7,14 @@ import signal
 import sys
 import docker
 import json
-from mcp.server import MCPServer
-from agent_core.models import MBPPTaskInput
+from mcp.server.fastmcp import FastMCP
 from pathlib import Path
 from typing import List
 
 LABEL = "mbpp-mcp"
 LABELS = {LABEL: "mbpp", f"{LABEL}.pid": str(os.getpid())}
 
-mcp = MCPServer("mbpp_mcp")
+mcp = FastMCP("mbpp_mcp")
 
 client = docker.from_env()
 c = client.containers.run(

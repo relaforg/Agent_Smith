@@ -9,70 +9,13 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from mcp import Client, StdioServerParameters, stdio_client
+from mcp import StdioServerParameters, stdio_client
 
 from models_public import SolutionOutput, StepMetrics, SWEBenchTaskInput
-from src.agent_core.llm.llm_client import LLMClient
-from src.agent_core.models import Message, SandboxConfig
-from src.agent_core.cli import extract_config, make_proxy
-from src.agent_core.sandbox.core import Sandbox
-
-SYSTEM_PROMPT_OLD = """You are an autonomous software engineer tasked with fixing bugs in repository codebases.
-You operate inside an interactive Python sandbox where MCP repository tools and helpers are directly exposed as Python functions.
-
-CRITICAL FORMATTING INSTRUCTIONS:
-- You must ONLY interact with the system by writing executable Python code wrapped inside ```python ... ``` markdown blocks.
-- DO NOT output JSON tool calls, XML tool tags (e.g., <tool_call>), or API-style tool formats (e.g., {"name": "python", "arguments": ...}).
-- Your response will be passed directly to a Python interpreter. Any raw text outside code blocks is ignored, but Python code inside ```python ... ``` blocks will be executed immediately.
-- To use tools, invoke them as standard Python function calls:
-
-```python
-# Correct usage
-result = search_code("def my_function", "*.py")
-print(result)
-```
-
-AVAILABLE TOOLS IN PYTHON EXECUTION NAMESPACE:
--read_file(filepath: str, start_line: int, end_line: int) -> str: Read file lines formatted with line numbers.
--edit_file(filepath: str, old_str: str, new_str: str) -> None: Perform exact string replacement in a file.
--list_files(directory: str, pattern: str) -> list[str]: List files in directory matching a pattern.
--search_code(pattern: str, file_pattern: str) -> str: Grep search across repository codebase.
--search_function_or_class_definition_in_code(name: str) -> str: Search class or function definitions.
--find_references(name: str, filepath: str, line: int) -> str: Search symbol references across files.
--run_tests() -> str: Execute evaluation test script for the repository.
--get_patch() -> str: Retrieve current unified git diff patch of modified files.
--run_command(command: str | list, workdir: str) -> dict: Run arbitrary shell command in workspace. Python command should be ran with python and not python3
--final_answer(patch: str) -> None: Terminate loop and submit final patch.
-
-SANDBOX GUARDRAILS & EXECUTION RULES:
--NO RESTRICTED IMPORTS: Do NOT write code containing forbidden AST imports (e.g., import os, import sympy, import sys). Use only the pre-imported tools listed above.
--FILE PATHS: Always use full absolute file paths returned by tools or workspace root paths (avoid unvalidated relative paths).
--NON-INTERACTIVE COMMANDS: When using run_command, run non-interactive scripts only.
-
-WORKFLOW GUIDELINES:
--EXPLORE & LOCATE: Use search_code, search_function_or_class_definition_in_code, or list_files to find relevant bug locations.
--READ & DIAGNOSE: Read target files with read_file to analyze root causes.
--EDIT: Use edit_file to apply minimal, surgical fixes.
--VERIFY: Call run_tests() to verify your edits against evaluation scripts.
--PATCH INSPECTION & SUBMISSION (CRITICAL STEP):
--Before ending the session, you MUST execute and print the output of get_patch() to inspect the diff:
--Python
-
-```python
-    patch = get_patch()
-    print(patch)
-```
-Verify that:
--The patch string is non-empty and starts with standard git diff headers (e.g., diff --git a/... b/...).
--The patch contains ONLY your intended changes.
--Only after verifying the printed patch, submit it directly:
-```python
-    final_answer(patch)
-```
-RULES:
--Always format executable code inside ```python ...```  blocks.
--Keep output concise and focus strictly on executing Python code to fix the problem.
-"""
+from agent_core.llm.llm_client import LLMClient
+from agent_core.models import Message, SandboxConfig
+from agent_core.cli import extract_config, make_proxy, open_session
+from agent_core.sandbox.core import Sandbox
 
 
 SYSTEM_PROMPT = """You are an autonomous software engineer fixing a bug in a repository.
@@ -102,7 +45,7 @@ TOOLS (all arguments are required)
 - search_code(pattern, file_pattern) -> str: grep, file_pattern like "*.py" or "django/http/*.py".
 - search_function_or_class_definition_in_code(name) -> str
 - find_references(name, filepath, line) -> str
-- run_tests() -> str: runs the evaluation script. Output can be long; print only what you need (e.g. the last 40 lines).
+- run_tests() -> tuple[int, str]: runs the evaluation script. returns a exit code and the logs. Output can be long; print only what you need (e.g. the last 40 lines).
 - get_patch() -> str: current git diff.
 -run_command(command: list[str] | str, workdir: str) -> dict: Run a command in the workspace.
   ALWAYS pass command as a LIST, e.g. ["python", "-c", script], not a shell string.
@@ -166,9 +109,8 @@ async def run_swebench_agent(
     config = extract_config("sandbox_template.json") or SandboxConfig()
     task = await asyncio.to_thread(_read_task, task_file)
 
-    mcp_script = Path(__file__).parents[1] / "mcp_tools_swebench.py"
-    if not mcp_script.exists():
-        mcp_script = Path("mcp_tools_swebench.py")
+    # The subject asks for the MCP tool files at the repository root
+    mcp_script = Path(__file__).parents[2] / "mcp_tools_swebench.py"
 
     mcp_env = dict(os.environ)
     if task.docker_image:
@@ -180,20 +122,18 @@ async def run_swebench_agent(
         command=sys.executable,
         args=[str(mcp_script)],
         env=mcp_env,
-        errlog=sys.stderr,
     )
 
     loop = asyncio.get_running_loop()
 
-    # Keep MCP Client active during execution
-    async with Client(stdio_client(server_params)) as client:
+    async with open_session(
+            stdio_client(server_params, errlog=sys.stderr)) as client:
         tools_list = await client.list_tools()
         tools = {
             t.name.replace("-", "_"): make_proxy(client, t, loop)
             for t in tools_list.tools
         }
 
-        # Run synchronous loop inside a separate worker thread
         def execution_loop():
             start_time = time.perf_counter()
             llm_client = LLMClient()
@@ -205,7 +145,7 @@ async def run_swebench_agent(
                 f"Problem Statement:\n{task.problem_statement}\n"
             )
             if task.hints_text:
-                initial_user_prompt += f"\nHints:\n{task.hints_text}\n"
+                initial_user_prompt += f"\nHints:\n{task.hints_text or 'No hint avaiable for this task'}\n"
 
             messages = [
                 Message(role="system", content=SYSTEM_PROMPT),
@@ -220,9 +160,6 @@ async def run_swebench_agent(
             repeat_count = 0
 
             with Sandbox(config, tools) as sb:
-
-                # sb.execute('print(run_command(["which", "python", "python3"], "/testbed"))')
-                # sb.execute('print(run_command(["python", "-c", "import sympy; print(sympy.__version__)"], "/testbed"))')
 
                 for i in range(1, max_iterations + 1):
                     step_start_time = time.perf_counter()
@@ -321,6 +258,8 @@ async def run_swebench_agent(
 
                     messages.append(Message(role="user", content=user_feedback))
 
+                    time.sleep(5)
+
             total_time_seconds = time.perf_counter() - start_time
             total_input_tokens = sum(s.input_tokens for s in steps)
             total_output_tokens = sum(s.output_tokens for s in steps)
@@ -354,7 +293,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SWE-bench Task Solver Agent")
     parser.add_argument("--task-file", "--task-path", required=True, help="Path to swebench task.json")
     parser.add_argument("--output", "--solution-path", required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="gemma-26", help="Model identifier to use")
+    parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
     args = parser.parse_args()
 

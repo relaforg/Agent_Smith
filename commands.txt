@@ -1,3 +1,7 @@
 ## mbpp
 
-for i in {1..5}; do cd moulinette; uv run moulinette_eval dump mbpp --output task.json; cd ..; uv run -m src.agent_mbpp --task-file moulinette/task.json --output moulinette/solution.json; cd moulinette && uv run python -m moulinette validate mbpp task.json solution.json; cd ..; sleep 15; done
+for i in {1..5}; do cd moulinette; uv run moulinette_eval dump mbpp --output task.json; cd ..; uv run -m agent_mbpp --task-file moulinette/task.json --output moulinette/solution.json; cd moulinette && uv run python -m moulinette validate mbpp task.json solution.json; cd ..; sleep 5; done
+
+## swebench
+
+uv run moulinette_eval dump swebench --output task.json; cd ..; uv run -m agent_swebench --task-file moulinette/task.json --output moulinette/solution.json; cd moulinette; uv run moulinette_eval validate swebench task.json solution.json

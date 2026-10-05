@@ -7,42 +7,37 @@ import httpx
 from agent_core.models import BaseProvider, LLMAnswer, Message
 
 
-class OpenRouterProvider(BaseProvider):
+class MistralProvider(BaseProvider):
     def __init__(self) -> None:
         keys = self.load_keys()
         if not keys:
-            raise ValueError("No openrouter API key")
+            raise ValueError("No Mistral API key")
         self.keys = keys
         self.key_index = 0
         self.curr_key = keys[0]
-        self.base_url = "https://openrouter.ai/api/v1"
+        self.base_url = "https://api.mistral.ai/v1"
         self.client = httpx.Client(timeout=120.0)
 
         self.MODEL_MAP: dict[str, str] = {
-                    "gemma-31": "google/gemma-4-31b-it:free",
-                    "gemma-26": "google/gemma-4-26b-a4b-it:free",
-                    "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
-                    "cohere": "cohere/command-r-7b-12-2024:free",
-                    "nemotron": "nvidia/llama-3.1-nemotron-70b-instruct:free",
-                    "codestral": "mistralai/codestral-2508",
-                    "ministral": "mistralai/ministral-14b-2512"
-                }
+            "ministral": "ministral-14b-2512",
+            "codestral": "codestral-2508",
+        }
 
         self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
 
     @property
     def name(self) -> str:
-        return "openrouter"
+        return "mistral"
 
     def load_keys(self) -> list[str]:
         keys = []
-        base_key = os.environ.get("OPENROUTER_API_KEY")
+        base_key = os.environ.get("MISTRAL_API_KEY")
         if base_key:
             keys.append(base_key)
 
         i = 1
         while True:
-            key = os.environ.get(f"OPENROUTER_API_KEY_{i}")
+            key = os.environ.get(f"MISTRAL_API_KEY_{i}")
             if not key:
                 break
             keys.append(key)
@@ -65,12 +60,10 @@ class OpenRouterProvider(BaseProvider):
             start = time.perf_counter()
 
             try:
-                print(self.curr_key)
                 response = self.client.post(
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {self.curr_key}",
-                        "HTTP-Referer": "https://github.com/relaforg/Agent_Smith"
                     },
                     json={
                         "model": model,
@@ -96,7 +89,7 @@ class OpenRouterProvider(BaseProvider):
                 )
 
             except httpx.HTTPStatusError as e:
-                # Catch rate limits (429) AND transient server failures (500, 502, 503, 504)
+                # Rate limits (429) and transient server failures (500, 502, 503, 504)
                 if e.response.status_code in (429, 500, 502, 503, 504):
                     time.sleep(2 ** min(attempt, 4))  # Exponential backoff
                     self.next_key()
