@@ -4,7 +4,7 @@ import time
 
 import httpx
 
-from src.agent_core.models import BaseProvider, LLMAnswer, Message
+from agent_core.models import BaseProvider, LLMAnswer, Message
 
 
 class OpenRouterProvider(BaseProvider):

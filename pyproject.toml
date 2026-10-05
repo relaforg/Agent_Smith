@@ -7,7 +7,7 @@ requires-python = "==3.10.*"
 dependencies = [
     "httpx>=0.28.1",
     "docker>=7.2.0",
-    "mcp[cli]>=2.0.0",
+    "mcp[cli]>=1.26,<2",
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.2",
     "tiktoken>=0.13.0",
@@ -23,7 +23,7 @@ ignore = ["UP045"]
 # the repository's own interpreter -- 3.7 for the oldest instances. `ruff
 # --fix` would happily "modernise" it back to syntax that cannot even be
 # parsed there: typing.List -> list (3.9), @lru_cache() -> @lru_cache (3.8).
-"src/refs.py" = ["UP006", "UP033", "UP035"]
+"refs.py" = ["UP006", "UP033", "UP035"]
 
 [build-system]
 requires = ["hatchling"]

@@ -76,7 +76,7 @@ def with_retry(
                     sleep_time = delay
 
                     logger.warning(
-                        f"[Attempt {attempt}/{max_retries}] Transient network or payload parse error ({type(exc).__name__}): {exc}. "
+                        f"[Attempt {attempt}/{max_retries}] Transient network or payload parse error ({type(e).__name__}): {e}. "
                         f"Retrying in {sleep_time:.2f}s..."
                     )
                     time.sleep(sleep_time)

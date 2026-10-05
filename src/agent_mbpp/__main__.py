@@ -8,13 +8,13 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from mcp import Client, StdioServerParameters, stdio_client
+from mcp import StdioServerParameters, stdio_client
 
 from models_public import MBPPTaskInput, SolutionOutput, StepMetrics
-from src.agent_core.llm.llm_client import LLMClient
-from src.agent_core.models import Message, SandboxConfig
-from src.agent_core.cli import extract_config, make_proxy
-from src.agent_core.sandbox.core import Sandbox
+from agent_core.llm.llm_client import LLMClient
+from agent_core.models import Message, SandboxConfig
+from agent_core.cli import extract_config, make_proxy, open_session
+from agent_core.sandbox.core import Sandbox
 
 
 SYSTEM_PROMPT = """You are an expert Python developer. You solve a task across MULTIPLE turns:
@@ -127,17 +127,18 @@ def _write_output(path: str, content: str) -> None:
 async def run_mbpp_agent(task_file: str, output_file: str, model_name: str = "gpt-oss-120b"):
     config = extract_config("sandbox_template.json") or SandboxConfig()
 
-    mcp_script = Path(__file__).parent / "mcp_tools_mbpp.py"
+    # The subject asks for the MCP tool files at the repository root
+    mcp_script = Path(__file__).parents[2] / "mcp_tools_mbpp.py"
 
     server_params = StdioServerParameters(
         command=sys.executable,
         args=[str(mcp_script)],
-        errlog=sys.stderr,
     )
 
     tools = {}
     if mcp_script.exists():
-        async with Client(stdio_client(server_params)) as client:
+        async with open_session(
+                stdio_client(server_params, errlog=sys.stderr)) as client:
             tools_list = await client.list_tools()
             tools = {
                 t.name.replace("-", "_"): make_proxy(

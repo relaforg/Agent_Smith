@@ -13,8 +13,8 @@ import importlib
 import subprocess
 import contextlib
 import docker
-from mcp.server import MCPServer
-from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 
@@ -29,7 +29,7 @@ EVAL_SCRIPT = os.environ.get("EVAL_SCRIPT")
 DOCKER_TESTBED = "/testbed"
 SYMBOL_TIMEOUT = "30"
 
-mcp = MCPServer("swebench_mcp")
+mcp = FastMCP("swebench_mcp")
 
 
 def _dec(raw: Optional[bytes]) -> str:
