@@ -109,7 +109,6 @@ async def run_swebench_agent(
     config = extract_config("sandbox_template.json") or SandboxConfig()
     task = await asyncio.to_thread(_read_task, task_file)
 
-    # The subject asks for the MCP tool files at the repository root
     mcp_script = Path(__file__).parents[2] / "mcp_tools_swebench.py"
 
     mcp_env = dict(os.environ)
