@@ -70,7 +70,7 @@ class OpenRouterProvider(BaseProvider):
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {self.curr_key}",
-                        "HTTP-Referer": "https://github.com/swebench-agent",
+                        "HTTP-Referer": "https://github.com/relaforg/Agent_Smith"
                     },
                     json={
                         "model": model,
