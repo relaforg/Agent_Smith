@@ -5,6 +5,7 @@ from agent_core.models import BaseProvider, Message, LLMAnswer
 from agent_core.llm.providers.groq import GroqProvider
 from agent_core.llm.providers.openrouter import OpenRouterProvider
 from agent_core.llm.providers.mistral import MistralProvider
+from agent_core.llm.providers.google import GoogleProvider
 from agent_core.llm.retry import with_retry
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ class LLMClient:
 
     def initialize_providers(self) -> None:
         """Initializes available providers based on present API keys."""
-        candidate_providers = [GroqProvider, OpenRouterProvider, MistralProvider]
+        candidate_providers = [GroqProvider,
+                               OpenRouterProvider, MistralProvider, GoogleProvider]
 
         for provider_cls in candidate_providers:
             try:
@@ -41,7 +43,8 @@ class LLMClient:
                 logger.debug(f"Skipping {provider_cls.__name__}: {e}")
 
         if not self.providers:
-            raise ValueError("No LLM provider found. Please check your environment variables.")
+            raise ValueError(
+                "No LLM provider found. Please check your environment variables.")
 
     def track_usage(self, answer: LLMAnswer) -> None:
         """Accumulates session and per-model token metrics directly from LLMAnswer."""
@@ -50,7 +53,8 @@ class LLMClient:
         self.total_requests += 1
 
         if answer.model not in self.model_usage:
-            self.model_usage[answer.model] = {"input": 0, "output": 0, "requests": 0}
+            self.model_usage[answer.model] = {
+                "input": 0, "output": 0, "requests": 0}
 
         self.model_usage[answer.model]["input"] += answer.input_tokens
         self.model_usage[answer.model]["output"] += answer.output_tokens
@@ -93,7 +97,8 @@ class LLMClient:
 
         for provider in candidate_providers:
             try:
-                logger.info(f"Routing model '{model}' to provider '{provider.name}'")
+                logger.info(
+                    f"Routing model '{model}' to provider '{provider.name}'")
 
                 attempts_made = 0
 
