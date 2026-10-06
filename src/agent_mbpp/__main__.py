@@ -170,6 +170,7 @@ async def run_mbpp_agent(task_file: str, output_file: str,
     final_solution = ""
     error_message: Optional[str] = None
     total_requests = 0
+    max_tokens = 1500
 
     async with contextlib.AsyncExitStack() as stack:
         tools = await _connect_mcp(stack, debug)
@@ -196,7 +197,7 @@ async def run_mbpp_agent(task_file: str, output_file: str,
                     messages=messages,
                     model=model_name,
                     temperature=TEMPERATURE,
-                    max_tokens=1500,
+                    max_tokens=max_tokens,
                 )
                 total_requests += 1 + answer.retries
             except Exception as e:
@@ -223,6 +224,11 @@ async def run_mbpp_agent(task_file: str, output_file: str,
                 retries=answer.retries,
             )
             steps.append(step)
+
+            if sum([step.output_tokens for step in steps]) > max_tokens / 2:
+                messages.append(Message(role="user",
+                    content="half of token budget used, you must call final_answer soon"))
+
             print_step(step, MAX_ITERATIONS,
                        done=exec_result.final_answer is not None,
                        repeated=repeated)
@@ -277,7 +283,7 @@ if __name__ == "__main__":
                         required=True, help="Path to task.json")
     parser.add_argument("--output", "--solution-path",
                         required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="codestral",
+    parser.add_argument("--model-name", default="gpt-oss-120b",
                         help="Model identifier to use")
     parser.add_argument("--debug", action="store_true",
                         help="Show prompts, raw replies, sandbox results, "
