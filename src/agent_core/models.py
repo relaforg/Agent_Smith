@@ -12,12 +12,12 @@ class SandboxConfig(BaseModel):
     Uses allowlist approach: only imports in authorized_imports are
     allowed. Everything else is blocked by default.
     """
-    #authorized_imports: list[str] = Field(default_factory=lambda: [
+    # authorized_imports: list[str] = Field(default_factory=lambda: [
     model_config = ConfigDict(extra="forbid")
     authorized_imports: List[str] = Field(default_factory=lambda: [
         "math", "math.*",
         "collections", "collections.*",
-        "itertools", "re", "json",
+        "itertools", "re",
         "typing", "typing.*",
         "functools", "operator",
         "heapq", "bisect", "copy",
@@ -223,6 +223,7 @@ class SolutionOutput(BaseModel):
         ),
     )
 
+
 class ExecutionResult(BaseModel):
     stdout: str = ""
     stderr: str = ""
@@ -256,10 +257,12 @@ class SandboxProtocol(Protocol):
 
 ######### LLM #########
 
+
 @dataclass
 class Message:
     role: Literal["system", "user", "assistant"]
     content: str
+
 
 @dataclass
 class LLMAnswer:
@@ -271,6 +274,7 @@ class LLMAnswer:
     retries: int = 0
     latency_ms: float = 0.0
     finish_reason: str | None = None
+
 
 class BaseProvider (ABC):
     """Abstarct Base Class for LLM provider"""
