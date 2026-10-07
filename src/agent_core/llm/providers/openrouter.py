@@ -24,6 +24,8 @@ class OpenRouterProvider(BaseProvider):
                     "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
                     "cohere": "cohere/command-r-7b-12-2024:free",
                     "nemotron": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+                    "codestral": "mistralai/codestral-2508",
+                    "ministral": "mistralai/ministral-14b-2512"
                 }
 
         self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
@@ -67,7 +69,7 @@ class OpenRouterProvider(BaseProvider):
                     f"{self.base_url}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {self.curr_key}",
-                        "HTTP-Referer": "https://github.com/swebench-agent",
+                        "HTTP-Referer": "https://github.com/relaforg/Agent_Smith"
                     },
                     json={
                         "model": model,
@@ -93,9 +95,8 @@ class OpenRouterProvider(BaseProvider):
                 )
 
             except httpx.HTTPStatusError as e:
-                # Catch rate limits (429) AND transient server failures (500, 502, 503, 504)
                 if e.response.status_code in (429, 500, 502, 503, 504):
-                    time.sleep(2 ** min(attempt, 4))  # Exponential backoff
+                    time.sleep(2 ** min(attempt, 4))
                     self.next_key()
                     continue
                 raise

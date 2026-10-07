@@ -102,14 +102,14 @@ def _write_output(path: str, content: str) -> None:
 async def run_swebench_agent(
     task_file: str,
     output_file: str,
-    model_name: str = "gemma-26",
+    model_name: str = "codestral",
     provider_url: Optional[str] = None,
+    api_key: Optional[str] = None,
     max_iterations: int = 30,
 ):
     config = extract_config("sandbox_template.json") or SandboxConfig()
     task = await asyncio.to_thread(_read_task, task_file)
 
-    # The subject asks for the MCP tool files at the repository root
     mcp_script = Path(__file__).parents[2] / "mcp_tools_swebench.py"
 
     mcp_env = dict(os.environ)
@@ -136,7 +136,7 @@ async def run_swebench_agent(
 
         def execution_loop():
             start_time = time.perf_counter()
-            llm_client = LLMClient()
+            llm_client = LLMClient(provider_url=provider_url, api_key=api_key)
             steps: list[StepMetrics] = []
 
             initial_user_prompt = (
@@ -295,6 +295,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", "--solution-path", required=True, help="Path to output solution.json")
     parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
+    parser.add_argument("--api-key", default=None, help="API key for the provider URL (falls back to LLM_API_KEY)")
     args = parser.parse_args()
 
     asyncio.run(
@@ -303,5 +304,6 @@ if __name__ == "__main__":
             output_file=args.output,
             model_name=args.model_name,
             provider_url=args.provider_url,
+            api_key=args.api_key,
         )
     )
