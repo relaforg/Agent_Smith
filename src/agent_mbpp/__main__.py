@@ -283,7 +283,7 @@ if __name__ == "__main__":
                         required=True, help="Path to task.json")
     parser.add_argument("--output", "--solution-path",
                         required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="gemini-flash",
+    parser.add_argument("--model-name", default="gpt-oss-120b",
                         help="Model identifier to use")
     parser.add_argument("--debug", action="store_true",
                         help="Show prompts, raw replies, sandbox results, "
