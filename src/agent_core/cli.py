@@ -1,3 +1,4 @@
+import os
 import platform
 import readline
 import json
@@ -57,7 +58,10 @@ def get_target(args) -> contextlib.AbstractAsyncContextManager | None:
     if not argv:
         raise SystemExit("--mcp-stdio: empty command")
     command, *rest = argv
-    return stdio_client(StdioServerParameters(command=command, args=rest))
+    # Without env, the SDK only forwards a whitelist (HOME, PATH...), so the
+    # server would not see its own config such as TESTBED_PATH or EVAL_SCRIPT.
+    return stdio_client(StdioServerParameters(command=command, args=rest,
+                                              env=dict(os.environ)))
 
 
 @contextlib.asynccontextmanager
@@ -116,6 +120,17 @@ def make_proxy(client: ClientSession, tool: types.Tool,
 
 def repl_loop(sandbox: Sandbox):
     print(f"Sandbox REPL (python {platform.python_version()})")
+    if not sys.stdin.isatty():
+        code = sys.stdin.read()
+        try:
+            res = sandbox.execute(code)
+            if res.__str__():
+                print(res)
+        except SandboxDied as e:
+            print(f"sandbox died: {e}", file=sys.stderr)
+            return 1
+        return 0
+
     while True:
         try:
             code = input(">>> ")
