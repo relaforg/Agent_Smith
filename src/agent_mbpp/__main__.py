@@ -1,109 +1,75 @@
 import argparse
+import ast
 import asyncio
+import contextlib
+import functools
+import inspect
 import json
+import logging
+import os
+import re
 import sys
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from dotenv import load_dotenv
 from mcp import StdioServerParameters, stdio_client
 
 from models_public import MBPPTaskInput, SolutionOutput, StepMetrics
 from agent_core.llm.llm_client import LLMClient
-from agent_core.models import Message, SandboxConfig
+from agent_core.models import ExecutionResult, Message, SandboxConfig
 from agent_core.cli import extract_config, make_proxy, open_session
 from agent_core.sandbox.core import Sandbox
+from agent_mbpp.display import (print_debug, print_debug_step, print_header,
+                                print_step, print_summary)
 
 
-SYSTEM_PROMPT = """You are an expert Python developer. You solve a task across MULTIPLE turns:
-write and test a candidate function, read the real sandbox output, refine if needed, and only
-then submit.
+MAX_ITERATIONS = 10
+MAX_TOKENS_PER_CALL = 1500
+TEMPERATURE = 0.1
+# Give up once the model has resent the same code this many times in a row
+MAX_REPEATS = 3
 
-HARD RULE — ONE CODE BLOCK PER TURN:
-Your response may contain EXACTLY ONE ```python ... ``` block. If you write more than one,
-only the LAST block is executed — any earlier block (including a scratchpad test) is silently
-discarded and never runs. This means you can NEVER test and submit in the same response.
-Testing and submitting are always separate turns.
+# The subject asks for the MCP tool files at the repository root
+MCP_SCRIPT = Path(__file__).parents[2] / "mcp_tools_mbpp.py"
 
-THE LOOP:
-1. SCRATCHPAD TURN — write your candidate function plus print()-based test cases covering
-   normal input, edge cases, and tricky return types (False vs -1 vs None, empty input, etc.).
-   Do NOT call final_answer() this turn. End your turn here and wait.
-2. You will receive the real stdout/stderr from running that code. Read it.
-3. If anything failed or looked wrong: go back to step 1 with a fixed function. This can repeat
-   as many times as needed — there is no penalty for iterating.
-4. SUBMISSION TURN — only once your own printed test output has confirmed everything passes,
-   write a turn containing ONLY a final_answer(...) call, with no other code above it.
+SYSTEM_PROMPT_TEMPLATE = r"""You are an expert Python programmer solving one MBPP task.
 
-CODE STYLE: internal reasoning only, no narration in code comments, no verbose docstrings,
-keep the function itself compact.
+Reply with ONE ```python block and nothing else. No explanation, no comments. Do any reasoning silently: the reply holds only the code block.
 
-- Your test cases must use assert, not just print() + a comment. A failed assert raises
-  an error you will SEE in the sandbox output; a wrong print next to a correct-looking
-  comment is easy to miss. Example:
-      assert maximize_elements((...)) == ((7, 8), (5, 10), (3, 10), (8, 11)), "test 1 failed"
-  If an assert fails, you MUST fix the function and test again before submitting —
-  do not submit a function whose own test just failed.
-- Every assert MUST include a message showing the actual value, e.g.:
-    actual = foo(bar)
-    assert actual == expected, f"Expected {expected}, got {actual}"
-  A bare assert with no message gives you nothing to debug from when it fails — you will
-  see only "AssertionError" and be stuck. Always make the failure show you what your
-  function actually returned.
-- Before concluding your FUNCTION is wrong, manually trace through your own algorithm by
-  hand for the failing test case, step by step, and write out what it should produce.
-  If your function's actual output matches your own by-hand trace, your function is
-  correct and your ASSERTION's expected value is the thing that's wrong — fix the
-  assertion, not the function. Do not rewrite a function that is already behaving
-  exactly as its own logic dictates.
+The block always has this exact structure (see the example below):
+1. `code = r'''...'''`: a raw string holding only the imports and the function, using the EXACT given name and signature. Never write ''' inside it.
+2. `result = run_tests(code, TESTS)` then `print(result["output"])`. TESTS is already defined and holds the original tests; in the sandbox run_tests returns a dict, not a JSON string.
+3. `if result["success"]: final_answer(code)`: this submits your solution and ends the task.
 
---- EXAMPLE: a scratchpad turn looks like this ---
+If a test fails you get the expected and actual values back: your function is wrong. The expected values are the ground truth, even when they seem to contradict the task wording: re-derive the rule from them and send a corrected block. A hidden test also checks your function: it must be right for every input, so when the visible tests leave the wording ambiguous, use its most standard meaning.
+
+Rules:
+- Solve the general problem; never hard-code test outputs.
+- Match the expected type exactly (tuple vs list, int vs float, bool vs str).
+- Allowed imports only: {imports}.
+- Forbidden: eval, exec, getattr, open, any name/attribute starting with "__".
+
+{tools}Example:
 ```python
-def add(a, b):
-    return a + b
+code = r'''
+import re
+def count_digits(s):
+    return len(re.findall(r'\d', s))
+'''
+result = run_tests(code, TESTS)
+print(result["output"])
+if result["success"]:
+    final_answer(code)
+```"""
 
-print("Test 1:", add(2, 3))   # expect 5
-print("Test 2:", add(-1, 1))  # expect 0
-```
-(Nothing else in that response. Wait for the output before doing anything else.)
-
---- EXAMPLE: a submission turn, sent only AFTER the scratchpad output confirmed success,
-looks like this — and contains nothing else ---
-```python
-final_answer('''def add(a, b):
-    return a + b''')
-```
-"""
-
-SYSTEM_PROMPT = """You are an expert Python developer solving one task per conversation.
-
-ONE CODE BLOCK PER TURN: only the LAST ```python``` block in your response runs. Never put
-scratchpad code and final_answer() in the same response — the scratchpad would be discarded.
-
-LOOP:
-1. SCRATCHPAD turn: write the function, then test it using the EXACT "Example Test Cases"
-   given to you, copied verbatim — never reword them or recompute their expected values,
-   they are the real grading tests. Add at most one extra assert of your own, only for a
-   genuine edge case not already covered (empty input, single element, zero, negative).
-2. Read the sandbox output.
-3. A GIVEN test failing means your FUNCTION is wrong — fix the function, never edit a given
-   assert's expected value, even if your function's logic seems to justify a different
-   number.
-   An assert YOU wrote failing is less certain — trace your function by hand for that input
-   first. If your function's real behavior matches your own trace, your invented expected
-   value was miscalculated: fix or drop that assert, not the function.
-4. Repeat until every given test passes, then on its own turn call:
-   final_answer('''<final function only, no tests>''')
-5. If you are about to send the exact same code you sent last turn, stop — that means
-    you are stuck. Do not resend it. Either change the function, or if the given tests
-    already passed, submit immediately instead.
-
-Use assert x == y, f"got {x}" — never a bare assert — so a failure shows the actual value.
-Keep code compact: no comments, no docstrings.
-as soon as the expected tests passes, run ```python final_answer("<function code>")```
-"""
+REPEAT_FEEDBACK = (
+    "You repeated the exact same code as last turn and got the exact same "
+    "result. Repeating it again will not help: understand the actual bug "
+    "before sending more code.")
 
 def extract_python_code(raw_text: str) -> str:
     """Extract Python code from markdown code blocks or return trimmed text."""
@@ -112,6 +78,41 @@ def extract_python_code(raw_text: str) -> str:
     elif "```" in raw_text:
         return raw_text.split("```")[-1].split("```")[0].strip()
     return raw_text.strip()
+
+def _build_system_prompt(authorized_imports: list[str],
+                         tools: dict[str, Callable]) -> str:
+    """The sandbox manual the subject asks for: allowed imports and the
+    documentation of every MCP tool exposed in the sandbox."""
+    modules = dict.fromkeys(p.removesuffix(".*") for p in authorized_imports)
+    tools_section = ""
+    if tools:
+        lines = [
+            f"- {name}{inspect.signature(f)}: {inspect.getdoc(f) or ''}"
+            for name, f in tools.items()
+        ]
+        tools_section = ("Sandbox tools (call them from your code):\n"
+                         + "\n".join(lines) + "\n\n")
+    return SYSTEM_PROMPT_TEMPLATE.format(
+        imports=", ".join(modules), tools=tools_section)
+
+def _decode_json(tool: Callable) -> Callable:
+    """json may not be importable in the sandbox: decode the tool's JSON
+    reply on the host so the sandbox script gets a plain dict."""
+    @functools.wraps(tool)
+    def decoded(*args, **kwargs):
+        return json.loads(tool(*args, **kwargs))
+    return decoded
+
+
+def _format_output(result: ExecutionResult) -> str:
+    parts = []
+    if result.stdout:
+        parts.append(f"stdout:\n{result.stdout}")
+    if result.stderr:
+        parts.append(f"stderr:\n{result.stderr}")
+    if result.error:
+        parts.append(f"error:\n{result.error}")
+    return "\n".join(parts).strip() or "Code executed with no output."
 
 
 def _read_task(path: str) -> MBPPTaskInput:
@@ -123,6 +124,26 @@ def _write_output(path: str, content: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
 
+async def _connect_mcp(stack: contextlib.AsyncExitStack,
+                       debug: bool) -> dict[str, Callable]:
+    """Start the MBPP MCP server and wrap its tools for the sandbox. The
+    session is kept open by `stack`: the proxies only work while it lives."""
+    if not MCP_SCRIPT.exists():
+        return {}
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=[str(MCP_SCRIPT)],
+    )
+    # The server logs every request on stderr: only worth showing in debug
+    errlog = sys.stderr if debug \
+        else stack.enter_context(open(os.devnull, "w"))
+    client = await stack.enter_async_context(
+        open_session(stdio_client(server_params, errlog=errlog)))
+    loop = asyncio.get_running_loop()
+    return {
+        t.name.replace("-", "_"): make_proxy(client, t, loop)
+        for t in (await client.list_tools()).tools
+    }
 
 async def run_mbpp_agent(
     task_file: str,
@@ -130,31 +151,11 @@ async def run_mbpp_agent(
     model_name: str = "gpt-oss-120b",
     provider_url: str | None = None,
     api_key: str | None = None,
-):
+    debug: bool = False
+    ):
+
     config = extract_config("sandbox_template.json") or SandboxConfig()
-
-    # The subject asks for the MCP tool files at the repository root
-    mcp_script = Path(__file__).parents[2] / "mcp_tools_mbpp.py"
-
-    server_params = StdioServerParameters(
-        command=sys.executable,
-        args=[str(mcp_script)],
-    )
-
-    tools = {}
-    if mcp_script.exists():
-        async with open_session(
-                stdio_client(server_params, errlog=sys.stderr)) as client:
-            tools_list = await client.list_tools()
-            tools = {
-                t.name.replace("-", "_"): make_proxy(
-                    client, t, asyncio.get_running_loop())
-                for t in tools_list.tools
-            }
-
-    start_time = time.perf_counter()
-
-    task = await asyncio.to_thread(_read_task, task_file)
+    task = _read_task(task_file)
 
     llm_client = LLMClient(provider_url=provider_url, api_key=api_key)
     steps: list[StepMetrics] = []
@@ -166,32 +167,38 @@ async def run_mbpp_agent(
         f"Required Imports:\n{json.dumps(task.test_imports)}\n"
     )
 
-    messages = [
-        Message(role="system", content=SYSTEM_PROMPT),
-        Message(role="user", content=initial_user_prompt),
-    ]
+    messages = [Message(role="user", content=initial_user_prompt)]
 
     success = False
     final_solution = ""
     error_message: Optional[str] = None
     total_requests = 0
-    last_code = ""
-    repeat_count = 0
+    max_tokens = 1500
 
-    config.authorized_imports.extend(task.test_imports)
+    async with contextlib.AsyncExitStack() as stack:
+        tools = await _connect_mcp(stack, debug)
+        sandbox_tools = {
+            name: _decode_json(f) if name == "run_tests" else f
+            for name, f in tools.items()
+        }
+        sb = stack.enter_context(Sandbox(config, sandbox_tools))
+        sb.execute(f"TESTS = {[*task.test_imports, *task.test_list]!r}")
+        system_prompt = _build_system_prompt(config.authorized_imports, tools)
+        messages.insert(0, Message(role="user", content=system_prompt))
 
-    with Sandbox(config, tools) as sb:
-        for i in range(1, 11):
-            print(i)
-            step_start_time = time.perf_counter()
-            user_feedback = ""
+        print_header(task, model_name, list(tools))
+        if debug:
+            print_debug("system prompt", system_prompt)
+            print_debug("user prompt", initial_user_prompt)
 
+        start_time = time.perf_counter()
+        for i in range(10):
             try:
                 answer = llm_client.chat(
                     messages=messages,
                     model=model_name,
-                    temperature=0.1,
-                    max_tokens=1500,
+                    temperature=TEMPERATURE,
+                    max_tokens=max_tokens,
                 )
                 total_requests += 1 + answer.retries
             except Exception as e:
@@ -201,133 +208,50 @@ async def run_mbpp_agent(
             llm_output = answer.content
             extracted_code = extract_python_code(llm_output)
 
+            # In a thread: the MCP proxies need the event loop to stay free
+            exec_result = await asyncio.to_thread(sb.execute, extracted_code)
 
-            if extracted_code.strip() == (last_code or "").strip():
-                repeat_count += 1
-            else:
-                repeat_count = 0
-            last_code = extracted_code
-
-            if repeat_count >= 1:
-                print("REPEAT")
-                user_feedback = (
-                    "You repeated the exact same code as last turn and got the exact same error. "
-                    "Repeating it again will not help. Stop trying to run a standalone script"
-                    "understand the actual bug before writing any more repro scripts."
-                )
-            if repeat_count >= 3:
-                error_message = "Aborted: agent stuck repeating identical actions."
-                break
-
-            last_code = extracted_code
-
-            exec_result = sb.execute(extracted_code)
-
-            # if exec_result.final_answer is not None:
-            #     break
-#                 candidate_solution = exec_result.final_answer
-#
-#                 test_blocks = []
-#                 for test in task.test_list:
-#                     dump_test = json.dumps(test)
-#                     test_blocks.append(
-#                         f"try:\n"
-#                         f"    {test}\n"
-#                         f"except Exception as e:\n"
-#                         f"    failures.append(f'FAILED TEST: ' + {dump_test} + f' | Error: {{type(e)}}: {{e}}')"
-#                     )
-#
-#                 imports = "\n".join([f"import {lib}" for lib in task.test_imports])
-#
-#                 full_tests = (
-#                     imports +
-#                     f"\n{candidate_solution}\n\n"
-#                     "failures = []\n"
-#                     + "\n".join(test_blocks) + "\n"
-#                     "if failures:\n"
-#                     "    raise AssertionError('\\n'.join(failures))\n"
-#                 )
-#
-#                 test_exec_result = sb.execute(full_tests)
-#
-#                 passed = test_exec_result.error is None
-#
-#                 if passed:
-#                     sandbox_output = "All task unit tests passed successfully."
-#                     success = True
-#                     final_solution = candidate_solution
-#                 else:
-#                     output_parts = []
-#                     if test_exec_result.stdout:
-#                         output_parts.append(f"stdout:\n{test_exec_result.stdout}")
-#                     if test_exec_result.stderr:
-#                         output_parts.append(f"stderr:\n{test_exec_result.stderr}")
-#                     if test_exec_result.error:
-#                         output_parts.append(f"error:\n{test_exec_result.error}")
-#                     sandbox_output = (
-#                         "Submitted solution failed task assertions:\n"
-#                         + "\n".join(output_parts).strip()
-#                     )
-
-            output_parts = []
-            if exec_result.stdout:
-                output_parts.append(f"stdout:\n{exec_result.stdout}")
-            if exec_result.stderr:
-                output_parts.append(f"stderr:\n{exec_result.stderr}")
-            if exec_result.error:
-                output_parts.append(f"error:\n{exec_result.error}")
-
-            sandbox_output = "\n".join(output_parts).strip() or "Code executed with no output."
-
-            request_time_ms = (time.perf_counter() - step_start_time) * 1000.0
-
-            step_metric = StepMetrics(
-                step=i,
+            repeated = bool(steps) \
+                and steps[-1].sandbox_input == extracted_code
+            step = StepMetrics(
+                step=i + 1,
                 input_tokens=answer.input_tokens,
                 output_tokens=answer.output_tokens,
-                request_time_ms=request_time_ms,
-                timestamp=datetime.now().isoformat(),
+                request_time_ms=answer.latency_ms,
                 model_name=answer.model,
                 llm_output=llm_output,
                 sandbox_input=extracted_code,
-                sandbox_output=sandbox_output,
+                sandbox_output=_format_output(exec_result),
                 retries=answer.retries,
             )
-            print(step_metric.sandbox_input, "\n\n\n")
-            print(step_metric.sandbox_output)
-            steps.append(step_metric)
+            steps.append(step)
 
-            # if success:
-            #     break
+            if sum([step.output_tokens for step in steps]) > max_tokens / 2:
+                messages.append(Message(role="user",
+                    content="half of token budget used, you must call final_answer soon"))
 
-            messages.append(Message(role="assistant", content=llm_output))
-
-            # if exec_result.final_answer is not None:
-            #     user_feedback += (
-            #         f"Your submitted final solution failed test assertions:\n{sandbox_output}\n\n"
-            #         "Please fix your function and call `final_answer(...)` again with the corrected code."
-            #     )
-            # else:
-            #     user_feedback += (
-            #         f"Sandbox execution output:\n{sandbox_output}\n\n"
-            #         "IMPORTANT: You defined/executed python code, but you did NOT call `final_answer(...)`.\n"
-            #         "If you are confident in your solution, submit it by calling `final_answer('''<your code>''')`."
-            #     )
-
-            messages.append(Message(role="user", content=sandbox_output))
-
-            messages.append(Message(role="user", content=user_feedback))
+            print_step(step, MAX_ITERATIONS,
+                       done=exec_result.final_answer is not None,
+                       repeated=repeated)
+            if debug:
+                print_debug_step(answer, TEMPERATURE, 1500,
+                                 exec_result, str(exec_result))
 
             if exec_result.final_answer is not None:
+                success = True
                 final_solution = exec_result.final_answer
                 break
 
+            messages.append(Message(role="assistant", content=llm_output))
+            messages.append(
+                Message(role="user", content=_format_output(exec_result)))
+
     total_time_seconds = time.perf_counter() - start_time
-    total_input_tokens = sum(s.input_tokens for s in steps)
-    total_output_tokens = sum(s.output_tokens for s in steps)
 
     if not success and not error_message:
         error_message = "Exhausted iterations without submitting a passing solution via final_answer()."
+
+    print_summary(success, steps, total_time_seconds, error_message)
 
     solution_output = SolutionOutput(
         task_id=str(task.task_id),
@@ -336,21 +260,16 @@ async def run_mbpp_agent(
         solution=final_solution,
         iterations=len(steps),
         total_requests=total_requests,
-        total_input_tokens=total_input_tokens,
-        total_output_tokens=total_output_tokens,
+        total_input_tokens=sum(s.input_tokens for s in steps),
+        total_output_tokens=sum(s.output_tokens for s in steps),
         total_time_seconds=total_time_seconds,
         steps=steps,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt,
         error=error_message,
         timestamp=datetime.now().isoformat(),
     )
 
-    await asyncio.to_thread(
-        _write_output,
-        output_file,
-        solution_output.model_dump_json(indent=2)
-    )
-
+    _write_output(output_file, solution_output.model_dump_json(indent=2))
 
 if __name__ == "__main__":
     load_dotenv()
@@ -360,6 +279,9 @@ if __name__ == "__main__":
     parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
     parser.add_argument("--api-key", default=None, help="API key for the provider URL (falls back to LLM_API_KEY)")
+    parser.add_argument("--debug", action="store_true",
+                        help="Show prompts, raw replies, sandbox results, "
+                             "MCP server and LLM client logs")
     args = parser.parse_args()
 
     asyncio.run(
@@ -369,5 +291,6 @@ if __name__ == "__main__":
             model_name=args.model_name,
             provider_url=args.provider_url,
             api_key=args.api_key,
+            debug=args.debug
         )
     )
