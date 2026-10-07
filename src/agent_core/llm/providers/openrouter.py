@@ -19,14 +19,12 @@ class OpenRouterProvider(BaseProvider):
         self.client = httpx.Client(timeout=120.0)
 
         self.MODEL_MAP: dict[str, str] = {
-                    "gemma-31": "google/gemma-4-31b-it:free",
-                    "gemma-26": "google/gemma-4-26b-a4b-it:free",
-                    "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
+            "gemma-31": "google/gemma-4-31b-it:free",
+            "gemma-26": "google/gemma-4-26b-a4b-it:free",
+            "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
                     "cohere": "cohere/command-r-7b-12-2024:free",
                     "nemotron": "nvidia/llama-3.1-nemotron-70b-instruct:free",
-                    "codestral": "mistralai/codestral-2508",
-                    "ministral": "mistralai/ministral-14b-2512"
-                }
+        }
 
         self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
 
@@ -105,4 +103,5 @@ class OpenRouterProvider(BaseProvider):
                 self.next_key()
                 continue
 
-        raise RuntimeError(f"All retries and API keys exhausted for model '{model}'.")
+        raise RuntimeError(
+            f"All retries and API keys exhausted for model '{model}'.")

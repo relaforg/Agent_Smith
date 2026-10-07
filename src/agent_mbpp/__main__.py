@@ -28,7 +28,8 @@ from agent_mbpp.display import (print_debug, print_debug_step, print_header,
 
 
 MAX_ITERATIONS = 10
-MAX_TOKENS_PER_CALL = 1500
+MAX_TOKENS_PER_CALL = 500
+MAX_TOKENS = 1500
 TEMPERATURE = 0.1
 # Give up once the model has resent the same code this many times in a row
 MAX_REPEATS = 3
@@ -170,7 +171,6 @@ async def run_mbpp_agent(task_file: str, output_file: str,
     final_solution = ""
     error_message: Optional[str] = None
     total_requests = 0
-    max_tokens = 1500
 
     async with contextlib.AsyncExitStack() as stack:
         tools = await _connect_mcp(stack, debug)
@@ -197,7 +197,7 @@ async def run_mbpp_agent(task_file: str, output_file: str,
                     messages=messages,
                     model=model_name,
                     temperature=TEMPERATURE,
-                    max_tokens=max_tokens,
+                    max_tokens=MAX_TOKENS_PER_CALL,
                 )
                 total_requests += 1 + answer.retries
             except Exception as e:
@@ -225,9 +225,9 @@ async def run_mbpp_agent(task_file: str, output_file: str,
             )
             steps.append(step)
 
-            if sum([step.output_tokens for step in steps]) > max_tokens / 2:
+            if sum([step.output_tokens for step in steps]) > MAX_TOKENS / 2:
                 messages.append(Message(role="user",
-                    content="half of token budget used, you must call final_answer soon"))
+                                        content="half of token budget used, you must call final_answer soon"))
 
             print_step(step, MAX_ITERATIONS,
                        done=exec_result.final_answer is not None,
@@ -283,7 +283,7 @@ if __name__ == "__main__":
                         required=True, help="Path to task.json")
     parser.add_argument("--output", "--solution-path",
                         required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="gpt-oss-120b",
+    parser.add_argument("--model-name", default="gemini-flash",
                         help="Model identifier to use")
     parser.add_argument("--debug", action="store_true",
                         help="Show prompts, raw replies, sandbox results, "

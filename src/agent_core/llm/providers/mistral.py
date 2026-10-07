@@ -100,4 +100,5 @@ class MistralProvider(BaseProvider):
                 self.next_key()
                 continue
 
-        raise RuntimeError(f"All retries and API keys exhausted for model '{model}'.")
+        raise RuntimeError(
+            f"All retries and API keys exhausted for model '{model}'.")
