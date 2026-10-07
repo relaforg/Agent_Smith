@@ -65,8 +65,6 @@ def run_tests(code: str, test_list: List[str]) -> str:
         report = json.loads(raw)
         loaded = report["loaded"]
     except (json.JSONDecodeError, TypeError, KeyError):
-        # The runner never printed its report: the 10s timeout killed it
-        # with SIGKILL (no output at all), or the container is broken.
         return _result(False, raw.strip() or
                        f"the test runner produced no output "
                        f"(exit code {res.exit_code})")

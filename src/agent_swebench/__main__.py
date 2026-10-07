@@ -41,13 +41,14 @@ TOOLS (all arguments are required)
 - edit_file(filepath, old_str, new_str) -> None: exact string replacement of ALL occurrences.
   It fails SILENTLY if old_str does not match (whitespace included), so always check the result with get_patch() or read_file().
   Include enough surrounding lines in old_str to make it unique.
-- list_files(directory, pattern) -> list[str]: non-recursive, pattern like "*.py".
+- list_files(directory, pattern) -> list[str]: file names (not paths), non-recursive, pattern like "*.py".
 - search_code(pattern, file_pattern) -> str: grep, file_pattern like "*.py" or "django/http/*.py".
 - search_function_or_class_definition_in_code(name) -> str
 - find_references(name, filepath, line) -> str
 - run_tests() -> tuple[int, str]: runs the evaluation script. returns a exit code and the logs. Output can be long; print only what you need (e.g. the last 40 lines).
 - get_patch() -> str: current git diff.
--run_command(command: list[str] | str, workdir: str) -> dict: Run a command in the workspace.
+-run_command(command: list[str] | str, workdir: str) -> str: Run a command in the workspace.
+  Returns one string with the exit code, then the stdout and stderr sections.
   ALWAYS pass command as a LIST, e.g. ["python", "-c", script], not a shell string.
   A list is passed directly to the process with no shell parsing, so you can put any
   Python code (multi-line, with quotes) into a normal triple-quoted string as one
@@ -62,13 +63,10 @@ Always wrap a call in print(...) if you want to see its result: print(run_tests(
 -If a standalone script fails due to a missing/broken dependency unrelated to the bug
  (ImportError, ModuleNotFoundError), do NOT try to mock or monkey-patch it — abandon
  the repro script and rely on run_tests() instead.
--NEVER index directly into a tool's return value on first use (e.g. run_command(...)["stdout"]).
- Assign it to a variable and print() the WHOLE result first:
-     result = run_command(...)
-     print(result)
- Only index into a specific key once you've seen the full dict and confirmed it has what
- you expect. A command that "produces no output" often failed — the real error is in
- ["stderr"] or ["exit_code"], and discarding them makes failures invisible.
+-Always print() the WHOLE result of run_command, never a slice of it:
+     print(run_command(...))
+ A command that "produces no output" often failed — the real error is in the
+ stderr section or the exit code, and discarding them makes failures invisible.
  -Only your last ```python ...``` block will be executed
  -The sandbox is fully closed to internet
 

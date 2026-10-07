@@ -15,7 +15,7 @@ import contextlib
 import docker
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
-from typing import List, Dict, Optional, Tuple
+from typing import List, Optional, Tuple
 from pathlib import Path
 
 
@@ -74,6 +74,9 @@ class DockerBackend:
             self.close()
             raise
 
+    def resolve(self, path: str) -> str:
+        return path
+
     def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
         res = self.container.exec_run(cmd, demux=True, workdir=workdir)
         stdout, stderr = res.output
@@ -116,7 +119,9 @@ class LocalBackend:
     """Runs every command directly in TESTBED_PATH, no container involved.
 
     Commands run with the testbed as working directory, so relative paths
-    resolve against it; absolute paths are left untouched.
+    resolve against it. Absolute paths under /testbed are mapped onto
+    TESTBED_PATH, so callers can use the container's paths with both backends;
+    other absolute paths are left untouched.
     """
 
     def __init__(self, path: str) -> None:
@@ -126,11 +131,21 @@ class LocalBackend:
         self.refs_script = str(Path(__file__).with_name("refs.py"))
         self.libs = None
 
+    def resolve(self, path: str) -> str:
+        if path == DOCKER_TESTBED or path.startswith(DOCKER_TESTBED + "/"):
+            return self.root + path[len(DOCKER_TESTBED):]
+        return path
+
     def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
+        cmd = [self.resolve(arg) for arg in cmd]
+        # join() keeps an absolute workdir as is and anchors a relative one
+        # to the testbed instead of the server's own working directory.
+        cwd = os.path.join(self.root, self.resolve(workdir)) if workdir \
+            else self.root
         try:
-            res = subprocess.run(cmd, cwd=workdir or self.root,
+            res = subprocess.run(cmd, cwd=cwd,
                                  capture_output=True, text=True,
                                  errors="replace")
         except OSError as err:
@@ -138,8 +153,7 @@ class LocalBackend:
         return res.returncode, res.stdout, res.stderr
 
     def put_file(self, path: str, content: str) -> None:
-        Path(path if os.path.isabs(path)
-             else os.path.join(self.root, path)).write_text(content)
+        Path(os.path.join(self.root, self.resolve(path))).write_text(content)
 
     def close(self) -> None:
         shutil.rmtree(self.scratch, ignore_errors=True)
@@ -181,13 +195,15 @@ def edit_file(filepath: str, old_str: str, new_str: str):
 
 @mcp.tool()
 def list_files(directory: str, pattern: str) -> List[str]:
-    """List files in a directory matching a given pattern."""
+    """List the names of the files in a directory matching a given pattern."""
     exit_code, stdout, stderr = backend.exec(["find", directory, "-maxdepth",
                                               "1", "-name", pattern,
                                               "-type", "f"])
     if exit_code != 0 and not stdout:
         raise ToolError(stderr.strip() or f"cannot list {directory}")
-    return stdout.splitlines()
+    # Names, not paths: the caller already knows the directory, and on the
+    # local backend find prints host paths instead of /testbed ones.
+    return [os.path.basename(path) for path in stdout.splitlines()]
 
 
 def _as_rows(grep_output: str) -> str:
@@ -199,6 +215,9 @@ def _as_rows(grep_output: str) -> str:
 def _symbols(**payload) -> str:
     """Run refs.py inside the backend and hand back its rows."""
     payload |= {"root": backend.root, "libs": backend.libs}
+    # refs.py opens filepath itself, outside of backend.exec.
+    if "filepath" in payload:
+        payload["filepath"] = backend.resolve(payload["filepath"])
     path = os.path.join(backend.scratch, "payload.json")
     backend.put_file(path, json.dumps(payload))
     _, stdout, stderr = backend.exec(["timeout", "-s", "KILL", SYMBOL_TIMEOUT,
@@ -281,15 +300,13 @@ def get_patch():
 
 
 @mcp.tool()
-def run_command(command, workdir) -> Dict[str, str | int]:
+def run_command(command, workdir) -> str:
     """Execute a shell command in the specified working directory.
     Returns the command’s stdout, stderr, and exit code."""
     exit_code, stdout, stderr = backend.exec(command, workdir=workdir)
-    return {
-        "stdout": stdout,
-        "stderr": stderr,
-        "exit_code": exit_code
-    }
+    return (f"exit_code: {exit_code}\n"
+            f"--- stdout ---\n{stdout}"
+            f"--- stderr ---\n{stderr}")
 
 
 if __name__ == "__main__":
