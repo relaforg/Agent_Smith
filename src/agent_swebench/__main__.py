@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import contextlib
 import json
 import os
 import sys
@@ -13,10 +14,17 @@ from mcp import StdioServerParameters, stdio_client
 
 from models_public import SolutionOutput, StepMetrics, SWEBenchTaskInput
 from agent_core.llm.llm_client import LLMClient
-from agent_core.models import Message, SandboxConfig
+from agent_core.models import ExecutionResult, Message, SandboxConfig
 from agent_core.cli import extract_config, make_proxy, open_session
 from agent_core.sandbox.core import Sandbox
+from agent_swebench.display import (print_debug, print_debug_step,
+                                    print_header, print_step, print_summary)
 
+
+TEMPERATURE = 0.2
+MAX_TOKENS_PER_CALL = 2048
+# Give up once the model has resent the same code this many times in a row
+MAX_REPEATS = 3
 
 SYSTEM_PROMPT = """You are an autonomous software engineer fixing a bug in a repository.
 You work in a Python sandbox where repository tools are pre-loaded as functions.
@@ -78,6 +86,21 @@ WORKFLOW
 5. Submit only when tests pass (or you have exhausted reasonable options).
 """
 
+REPEAT_FEEDBACK = (
+    "You repeated the exact same code as last turn and got the exact same "
+    "result. Repeating it again will not help. Stop trying to run a "
+    "standalone script: understand the actual bug before writing any more "
+    "repro scripts.")
+
+TRUNCATED_FEEDBACK = (
+    "Your code was cut off mid-generation because it was too long — this is a "
+    "truncation issue, not a quoting mistake. Do not retry the same large "
+    "script. Instead: write something much shorter, split it into a smaller "
+    "step, or better yet, skip the custom repro script entirely and call "
+    "run_tests() to check whether the existing test suite already reproduces "
+    "this bug.")
+
+
 def extract_python_code(raw_text: str) -> str:
     """Extract Python code from markdown code blocks or return trimmed text."""
     if "```python" in raw_text:
@@ -85,6 +108,22 @@ def extract_python_code(raw_text: str) -> str:
     elif "```" in raw_text:
         return raw_text.split("```")[-1].split("```")[0].strip()
     return raw_text.strip()
+
+
+def _format_output(result: ExecutionResult) -> str:
+    parts = []
+    if result.stdout:
+        parts.append(f"stdout:\n{result.stdout}")
+    if result.stderr:
+        parts.append(f"stderr:\n{result.stderr}")
+    if result.error:
+        parts.append(f"error:\n{result.error}")
+    return "\n".join(parts).strip() or "Code executed with no output."
+
+
+def _is_truncated(result: ExecutionResult) -> bool:
+    error = str(result.error or "")
+    return "unterminated" in error and "string literal" in error
 
 
 def _read_task(path: str) -> SWEBenchTaskInput:
@@ -104,6 +143,7 @@ async def run_swebench_agent(
     provider_url: Optional[str] = None,
     api_key: Optional[str] = None,
     max_iterations: int = 30,
+    debug: bool = False,
 ):
     config = extract_config("sandbox_template.json") or SandboxConfig()
     task = await asyncio.to_thread(_read_task, task_file)
@@ -124,8 +164,12 @@ async def run_swebench_agent(
 
     loop = asyncio.get_running_loop()
 
-    async with open_session(
-            stdio_client(server_params, errlog=sys.stderr)) as client:
+    async with contextlib.AsyncExitStack() as stack:
+        # The server logs every request on stderr: only worth showing in debug
+        errlog = sys.stderr if debug \
+            else stack.enter_context(open(os.devnull, "w"))
+        client = await stack.enter_async_context(
+            open_session(stdio_client(server_params, errlog=errlog)))
         tools_list = await client.list_tools()
         tools = {
             t.name.replace("-", "_"): make_proxy(client, t, loop)
@@ -143,7 +187,7 @@ async def run_swebench_agent(
                 f"Problem Statement:\n{task.problem_statement}\n"
             )
             if task.hints_text:
-                initial_user_prompt += f"\nHints:\n{task.hints_text or 'No hint avaiable for this task'}\n"
+                initial_user_prompt += f"\nHints:\n{task.hints_text}\n"
 
             messages = [
                 Message(role="system", content=SYSTEM_PROMPT),
@@ -154,8 +198,13 @@ async def run_swebench_agent(
             final_patch = ""
             error_message: Optional[str] = None
             total_requests = 0
-            last_code = None
+            last_code: Optional[str] = None
             repeat_count = 0
+
+            print_header(task, model_name, list(tools))
+            if debug:
+                print_debug("system prompt", SYSTEM_PROMPT)
+                print_debug("user prompt", initial_user_prompt)
 
             with Sandbox(config, tools) as sb:
 
@@ -166,8 +215,8 @@ async def run_swebench_agent(
                         answer = llm_client.chat(
                             messages=messages,
                             model=model_name,
-                            temperature=.2,
-                            max_tokens=2048,
+                            temperature=TEMPERATURE,
+                            max_tokens=MAX_TOKENS_PER_CALL,
                         )
                         total_requests += 1 + answer.retries
                     except Exception as e:
@@ -183,44 +232,30 @@ async def run_swebench_agent(
                         repeat_count = 0
                     last_code = extracted_code
 
-                    if repeat_count >= 1:
-                        sandbox_output = (
-                            "You repeated the exact same code as last turn and got the exact same error. "
-                            "Repeating it again will not help. Stop trying to run a standalone script"
-                            "understand the actual bug before writing any more repro scripts."
-                        )
-                    if repeat_count >= 3:
-                        error_message = "Aborted: agent stuck repeating identical actions."
+                    if repeat_count >= MAX_REPEATS:
+                        error_message = \
+                            "Aborted: agent stuck repeating identical actions."
                         break
 
                     exec_result = sb.execute(extracted_code)
+                    done = exec_result.final_answer is not None
 
-                    if exec_result.error and "unterminated" in str(exec_result.error) and "string literal" in str(exec_result.error):
-                        sandbox_output = (
-                            "Your code was cut off mid-generation because it was too long — this is a "
-                            "truncation issue, not a quoting mistake. Do not retry the same large script. "
-                            "Instead: write something much shorter, split it into a smaller step, or "
-                            "better yet, skip the custom repro script entirely and call run_tests() to "
-                            "check whether the existing test suite already reproduces this bug."
-                        )
-                        continue
-
-                    if exec_result.final_answer is not None:
+                    # note: what the agent adds to the raw sandbox output
+                    note: Optional[str] = None
+                    if done:
                         final_patch = str(exec_result.final_answer)
                         success = True
-                        sandbox_output = "Task completed and final patch submitted successfully."
+                        sandbox_output = \
+                            "Task completed and final patch submitted successfully."
                     else:
-                        output_parts = []
-                        if exec_result.stdout:
-                            output_parts.append(f"stdout:\n{exec_result.stdout}")
-                        if exec_result.stderr:
-                            output_parts.append(f"stderr:\n{exec_result.stderr}")
-                        if exec_result.error:
-                            output_parts.append(f"error:\n{exec_result.error}")
+                        sandbox_output = _format_output(exec_result)
+                        if _is_truncated(exec_result):
+                            note = TRUNCATED_FEEDBACK
+                        elif repeat_count >= 1:
+                            note = REPEAT_FEEDBACK
 
-                        sandbox_output = "\n".join(output_parts).strip() or "Code executed with no output."
-
-                    request_time_ms = (time.perf_counter() - step_start_time) * 1000.0
+                    request_time_ms = \
+                        (time.perf_counter() - step_start_time) * 1000.0
 
                     step_metric = StepMetrics(
                         step=i,
@@ -235,25 +270,28 @@ async def run_swebench_agent(
                         sandbox_output=sandbox_output,
                         retries=answer.retries,
                     )
-
-                    print(step_metric.step, "\n")
-                    print(step_metric.sandbox_input, "\n")
-                    print(step_metric.sandbox_output, "\n")
-
-
                     steps.append(step_metric)
-
-                    if success:
-                        break
-
-                    messages.append(Message(role="assistant", content=llm_output))
 
                     user_feedback = (
                         f"Observation from execution:\n{sandbox_output}\n\n"
-                        "IMPORTANT: If you have completed the fix and verified it with tests, "
-                        "submit your work by calling `final_answer(get_patch())`."
+                        + (f"{note}\n\n" if note else "")
+                        + "IMPORTANT: If you have completed the fix and "
+                        "verified it with tests, submit your work by calling "
+                        "`final_answer(get_patch())`."
                     )
 
+                    print_step(step_metric, max_iterations, done=done,
+                               repeated=repeat_count >= 1, note=note)
+                    if debug:
+                        print_debug_step(answer, TEMPERATURE,
+                                         MAX_TOKENS_PER_CALL, exec_result,
+                                         user_feedback)
+
+                    if done:
+                        break
+
+                    messages.append(
+                        Message(role="assistant", content=llm_output))
                     messages.append(Message(role="user", content=user_feedback))
 
                     time.sleep(5)
@@ -264,6 +302,9 @@ async def run_swebench_agent(
 
             if not success and not error_message:
                 error_message = "Exhausted maximum iterations without submitting a patch via final_answer()."
+
+            print_summary(success, steps, total_time_seconds, error_message,
+                          final_patch)
 
             solution_output = SolutionOutput(
                 task_id=task.instance_id,
@@ -294,6 +335,9 @@ if __name__ == "__main__":
     parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
     parser.add_argument("--api-key", default=None, help="API key for the provider URL (falls back to LLM_API_KEY)")
+    parser.add_argument("--debug", action="store_true",
+                        help="Show prompts, raw replies, sandbox results, "
+                             "MCP server and LLM client logs")
     args = parser.parse_args()
 
     asyncio.run(
@@ -303,5 +347,6 @@ if __name__ == "__main__":
             model_name=args.model_name,
             provider_url=args.provider_url,
             api_key=args.api_key,
+            debug=args.debug,
         )
     )
