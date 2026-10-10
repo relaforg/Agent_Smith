@@ -8,3 +8,6 @@ task.json
 solution.json
 exams
 evaluations
+fuse_results.py
+run_one.sh
+validate*
