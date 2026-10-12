@@ -1,0 +1,17 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 105 · ministral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to count true booleans in the given list.
+
+── Step 1/10 · in 511 · out 45 · 4.6s ──────────────────────────────────
+    code = r'''
+    def count(lst):
+        return sum(lst)
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 511 · out 45 · 4.8s ━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,29 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Provider 'groq' failed for model 'gpt-safeguard': All API keys exhausted. Checking for alternative provider hosting identical model...
+━━ MBPP task 472 · gpt-safeguard · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to check whether the given list contains consecutive numbers or not.
+
+── Step 1/10 · in 583 · out 438 · 0.6s ─────────────────────────────────
+    import math
+    def check_Consecutive(l):
+        if len(l) <= 1:
+            return True
+        if len(set(l)) != len(l):
+            return False
+        sorted_l = sorted(l)
+        return all(sorted_l[i] + 1 == sorted_l[i+1] for i in range(len(sorted_l)-1))
+    Code executed with no output.
+
+── Step 2/10 · in 674 · out 398 · 0.5s ─────────────────────────────────
+    def check_Consecutive(l):
+        if len(l) <= 1:
+            return True
+        if len(set(l)) != len(l):
+            return False
+        sorted_l = sorted(l)
+        return all(sorted_l[i] + 1 == sorted_l[i+1] for i in range(len(sorted_l)-1))
+    Code executed with no output.
+
+━━ ✗ Not solved after 2 step(s) · in 1257 · out 836 · 1.7s ━━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-safeguard' failed. Errors: {'groq': RuntimeError('All API keys exhausted')}

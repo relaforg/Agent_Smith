@@ -276,7 +276,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MBPP Task Solver Agent")
     parser.add_argument("--task-file", "--task-path", required=True, help="Path to task.json")
     parser.add_argument("--output", "--solution-path", required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
+    parser.add_argument("--model-name", default="gpt-oss-120b", help="Model identifier to use")
     parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
     parser.add_argument("--api-key", default=None, help="API key for the provider URL (falls back to LLM_API_KEY)")
     parser.add_argument("--debug", action="store_true",

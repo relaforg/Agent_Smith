@@ -9,5 +9,5 @@ solution.json
 exams
 evaluations
 fuse_results.py
-run_one.sh
+run*.sh
 validate*

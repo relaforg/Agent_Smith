@@ -1,0 +1,25 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 167 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+── Step 1/10 · in 521 · out 108 · 0.9s ─────────────────────────────────
+    code = r'''
+    def next_power_of_2(n):
+        if n <= 0:
+            return 1
+        n -= 1
+        n |= n >> 1
+        n |= n >> 2
+        n |= n >> 4
+        n |= n >> 8
+        n |= n >> 16
+        return n + 1
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 521 · out 108 · 1.2s ━━━━━━━━━━━━━━━━━━━━━

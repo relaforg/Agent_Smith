@@ -1,0 +1,22 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 401: {"error":{"message":"Missing Authentication header","code":401}}
+Provider 'openrouter' failed for model 'gemma-31': Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Checking for alternative provider hosting identical model...
+━━ SWE-bench django__django-11490 · django/django · gemma-31 ━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Composed queries cannot change the list of columns with values()/values_list().
+Description
+	
+Composed queries cannot change the list of columns when values()/values_list() is evaluated multiple times, e.g.
+>>> ReservedName.objects.create(name='a', order=2)
+>>> qs1 = ReservedName.objects.all()
+>>> print(qs1.union(qs1).values_list('name', 'order').get())
+('a', 2)
+>>> print(qs1.union(qs1).values_list('order').get())
+('a', 2)
+(see ​compiler.py#L428-L433).
+
+━━ ✗ No patch submitted after 0 step(s) · in 0 · out 0 · 24.1s ━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemma-31' failed. Errors: {'openrouter': HTTPStatusError("Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401")}

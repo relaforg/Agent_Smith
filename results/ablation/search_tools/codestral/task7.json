@@ -1,0 +1,81 @@
+{
+  "task_id": "pydata__xarray-4629",
+  "benchmark": "swebench",
+  "success": true,
+  "solution": "diff --git a/xarray/core/merge.py b/xarray/core/merge.py\nindex ca4e29b6..dff00804 100644\n--- a/xarray/core/merge.py\n+++ b/xarray/core/merge.py\n@@ -501,7 +501,7 @@ def merge_attrs(variable_attrs, combine_attrs):\n     if combine_attrs == \"drop\":\n         return {}\n     elif combine_attrs == \"override\":\n-        return variable_attrs[0]\n+        return dict(variable_attrs[0])\n     elif combine_attrs == \"no_conflicts\":\n         result = dict(variable_attrs[0])\n         for attrs in variable_attrs[1:]:\n",
+  "iterations": 5,
+  "total_requests": 5,
+  "total_input_tokens": 13539,
+  "total_output_tokens": 97,
+  "total_time_seconds": 25.371535427999333,
+  "steps": [
+    {
+      "step": 1,
+      "input_tokens": 2013,
+      "output_tokens": 28,
+      "request_time_ms": 541.0434029981843,
+      "timestamp": "2026-10-10T15:43:32.726119",
+      "api_url": "",
+      "model_name": "codestral-2508",
+      "llm_output": "```python\nprint(read_file(\"/testbed/xarray/core/merge.py\", 504, 504))\n```",
+      "sandbox_input": "print(read_file(\"/testbed/xarray/core/merge.py\", 504, 504))",
+      "sandbox_output": "stdout:\n504:         return variable_attrs[0]",
+      "retries": 0
+    },
+    {
+      "step": 2,
+      "input_tokens": 2092,
+      "output_tokens": 38,
+      "request_time_ms": 818.9411719940836,
+      "timestamp": "2026-10-10T15:43:38.550251",
+      "api_url": "",
+      "model_name": "codestral-2508",
+      "llm_output": "```python\nedit_file(\"/testbed/xarray/core/merge.py\", \"        return variable_attrs[0]\", \"        return dict(variable_attrs[0])\")\n```",
+      "sandbox_input": "edit_file(\"/testbed/xarray/core/merge.py\", \"        return variable_attrs[0]\", \"        return dict(variable_attrs[0])\")",
+      "sandbox_output": "Code executed with no output.",
+      "retries": 0
+    },
+    {
+      "step": 3,
+      "input_tokens": 2172,
+      "output_tokens": 10,
+      "request_time_ms": 351.939764994313,
+      "timestamp": "2026-10-10T15:43:43.907831",
+      "api_url": "",
+      "model_name": "codestral-2508",
+      "llm_output": "```python\nprint(get_patch())\n```",
+      "sandbox_input": "print(get_patch())",
+      "sandbox_output": "stdout:\ndiff --git a/xarray/core/merge.py b/xarray/core/merge.py\nindex ca4e29b6..dff00804 100644\n--- a/xarray/core/merge.py\n+++ b/xarray/core/merge.py\n@@ -501,7 +501,7 @@ def merge_attrs(variable_attrs, combine_attrs):\n     if combine_attrs == \"drop\":\n         return {}\n     elif combine_attrs == \"override\":\n-        return variable_attrs[0]\n+        return dict(variable_attrs[0])\n     elif combine_attrs == \"no_conflicts\":\n         result = dict(variable_attrs[0])\n         for attrs in variable_attrs[1:]:",
+      "retries": 0
+    },
+    {
+      "step": 4,
+      "input_tokens": 2383,
+      "output_tokens": 10,
+      "request_time_ms": 3129.7218820036505,
+      "timestamp": "2026-10-10T15:43:52.042750",
+      "api_url": "",
+      "model_name": "codestral-2508",
+      "llm_output": "```python\nprint(run_tests())\n```",
+      "sandbox_input": "print(run_tests())",
+      "sandbox_output": "stdout:\n[0, 'On branch main\\nChanges not staged for commit:\\n  (use \"git add <file>...\" to update what will be committed)\\n  (use \"git restore <file>...\" to discard changes in working directory)\\n\\tmodified:   xarray/core/merge.py\\n\\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\\ncommit 84ed8bedc5192f3a9cda97cc8edfbc6b80ff80be\\nAuthor: SWE-bench <setup@swebench.com>\\nDate:   Thu Aug 13 04:39:47 2026 +0000\\n\\n    SWE-bench\\ndiff --git a/xarray/core/merge.py b/xarray/core/merge.py\\nindex ca4e29b6..dff00804 100644\\n--- a/xarray/core/merge.py\\n+++ b/xarray/core/merge.py\\n@@ -501,7 +501,7 @@ def merge_attrs(variable_attrs, combine_attrs):\\n     if combine_attrs == \"drop\":\\n         return {}\\n     elif combine_attrs == \"override\":\\n-        return variable_attrs[0]\\n+        return dict(variable_attrs[0])\\n     elif combine_attrs == \"no_conflicts\":\\n         result = dict(variable_attrs[0])\\n         for attrs in variable_attrs[1:]:\\nObtaining file:///testbed\\n  Preparing metadata (setup.py): started\\n  Preparing metadata (setup.py): finished with status \\'done\\'\\nRequirement already satisfied: numpy>=1.15 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from xarray==0.16.3.dev3+g84ed8bedc.d20261010) (1.23.0)\\nRequirement already satisfied: pandas>=0.25 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from xarray==0.16.3.dev3+g84ed8bedc.d20261010) (1.5.3)\\nRequirement already satisfied: setuptools>=38.4 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from xarray==0.16.3.dev3+g84ed8bedc.d20261010) (68.0.0)\\nRequirement already satisfied: python-dateutil>=2.8.1 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from pandas>=0.25->xarray==0.16.3.dev3+g84ed8bedc.d20261010) (2.8.2)\\nRequirement already satisfied: pytz>=2020.1 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from pandas>=0.25->xarray==0.16.3.dev3+g84ed8bedc.d20261010) (2023.3)\\nRequirement already satisfied: six>=1.5 in /opt/miniconda3/envs/testbed/lib/python3.10/site-packages (from python-dateutil>=2.8.1->pandas>=0.25->xarray==0.16.3.dev3+g84ed8bedc.d20261010) (1.16.0)\\nInstalling collected packages: xarray\\n  Attempting uninstall: xarray\\n    Found existing installation: xarray 0.16.3.dev2+ga41edc7bf\\n    Uninstalling xarray-0.16.3.dev2+ga41edc7bf:\\n      Successfully uninstalled xarray-0.16.3.dev2+ga41edc7bf\\n  Running setup.py develop for xarray\\nSuccessfully installed xarray\\n============================= test session starts ==============================\\nplatform linux -- Python 3.10.15, pytest-7.4.0, pluggy-1.5.0\\nrootdir: /testbed\\nconfigfile: setup.cfg\\nplugins: xdist-3.6.1, cov-5.0.0, env-1.1.5, hypothesis-6.114.0\\ncollected 33 items\\n\\nxarray/tests/test_merge.py .................................             [100%]\\n\\n=============================== warnings summary ===============================\\nxarray/__init__.py:1\\n  /testbed/xarray/__init__.py:1: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\\n    import pkg_resources\\n\\nxarray/core/dask_array_compat.py:61\\nxarray/core/dask_array_compat.py:61\\n  /testbed/xarray/core/dask_array_compat.py:61: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\\n    if LooseVersion(dask_version) > LooseVersion(\"2.9.0\"):\\n\\nxarray/core/pdcompat.py:45\\n  /testbed/xarray/core/pdcompat.py:45: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\\n    if LooseVersion(pd.__version__) < \"0.25.0\":\\n\\n../opt/miniconda3/envs/testbed/lib/python3.10/site-packages/setuptools/_distutils/version.py:345\\n  /opt/miniconda3/envs/testbed/lib/python3.10/site-packages/setuptools/_distutils/version.py:345: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\\n    other = LooseVersion(other)\\n\\nxarray/tests/__init__.py:59\\nxarray/tests/__init__.py:59\\nxarray/tests/__init__.py:59\\nxarray/tests/__init__.py:59\\n  /testbed/xarray/tests/__init__.py:59: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\\n    return version.LooseVersion(vstring)\\n\\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\\n==================================== PASSES ====================================\\n=========================== short test summary info ============================\\nPASSED xarray/tests/test_merge.py::TestMergeInternals::test_broadcast_dimension_size\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_datasets\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_dataarray_unnamed\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs_default\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[no_conflicts-var1_attrs0-var2_attrs0-expected_attrs0-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[no_conflicts-var1_attrs1-var2_attrs1-expected_attrs1-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[no_conflicts-var1_attrs2-var2_attrs2-expected_attrs2-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[no_conflicts-var1_attrs3-var2_attrs3-expected_attrs3-True]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[drop-var1_attrs4-var2_attrs4-expected_attrs4-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[identical-var1_attrs5-var2_attrs5-expected_attrs5-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[identical-var1_attrs6-var2_attrs6-expected_attrs6-True]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays_attrs[override-var1_attrs7-var2_attrs7-expected_attrs7-False]\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_attrs_override_copy\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_simple\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_dims\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_error\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_alignment_error\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_wrong_input_error\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_single_var\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_multi_var\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_preserve_attrs\\nPASSED xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_broadcast\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_broadcast_equals\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_compat\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_auto_align\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value0]\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2]\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2.0]\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value3]\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_no_conflicts\\nPASSED xarray/tests/test_merge.py::TestMergeMethod::test_merge_dataarray\\n======================== 33 passed, 9 warnings in 1.54s ========================\\n']",
+      "retries": 0
+    },
+    {
+      "step": 5,
+      "input_tokens": 4879,
+      "output_tokens": 11,
+      "request_time_ms": 440.4777300005662,
+      "timestamp": "2026-10-10T15:43:57.489037",
+      "api_url": "",
+      "model_name": "codestral-2508",
+      "llm_output": "```python\nfinal_answer(get_patch())\n```",
+      "sandbox_input": "final_answer(get_patch())",
+      "sandbox_output": "Task completed and final patch submitted successfully.",
+      "retries": 0
+    }
+  ],
+  "system_prompt": "You are an autonomous software engineer fixing a bug in a repository.\nYou work in a Python sandbox where repository tools are pre-loaded as functions.\n\nOUTPUT FORMAT\n- Reply with exactly ONE ```python ... ``` block per turn. Only the first block is executed; text outside it is ignored.\n- Never emit JSON/XML tool calls. Call the functions directly and print() results you want to see.\n- Keep each block short: one logical action, no long comments, never copy tool output into comments.\n- You cannot see the output of a block until your next turn. Do not act on results you have not seen.\n\nENVIRONMENT FACTS\n- The repository is checked out at /testbed. Use absolute paths everywhere (e.g. /testbed/django/http/response.py).\n- run_command's workdir must be absolute, e.g. \"/testbed\". Relative workdirs fail.\n- The sandbox forbids ALL imports (os, sys, re, ...). Do not use open(); Do not import os; it does not touch the repository.\n  To read use read_file, to modify use edit_file, for anything else use run_command.\n- Project dependencies may be missing, so ad-hoc scripts that import the project can fail (e.g. ModuleNotFoundError).\n  Do not spend turns fixing the environment. Verify with run_tests() instead.\n- Never create files inside /testbed (they pollute the patch). Scratch files go in /tmp.\n\nTOOLS (all arguments are required)\n- read_file(filepath, start_line, end_line) -> str: numbered lines.\n- edit_file(filepath, old_str, new_str) -> None: exact string replacement of ALL occurrences.\n  It fails SILENTLY if old_str does not match (whitespace included), so always check the result with get_patch() or read_file().\n  Include enough surrounding lines in old_str to make it unique.\n- run_tests() -> tuple[int, str]: runs the evaluation script. returns a exit code and the logs. Output can be long; print only what you need (e.g. the last 41 lines).\n- get_patch() -> str: current git diff.\n-run_command(command: list[str] | str, workdir: str) -> str: Run a command in the workspace.\n  Returns one string with the exit code, then the stdout and stderr sections.\n  ALWAYS pass command as a LIST, e.g. [\"python\", \"-c\", script], not a shell string.\n  A list is passed directly to the process with no shell parsing, so you can put any\n  Python code (multi-line, with quotes) into a normal triple-quoted string as one\n  argument, with zero escaping needed. Do NOT build shell strings with heredocs,\n  nested quotes, or `bash -c \"...\"` — this reliably produces syntax errors.\n  To run a one-off script without creating a file: run_command([\"python\", \"-c\", code], workdir).\n- final_answer(patch) -> None: submits and ends the session.\n\nREMINDER:\n-this sandbox uses exec(), not a REPL — return values are NOT auto-printed.\nAlways wrap a call in print(...) if you want to see its result: print(run_tests()), print(read_file(...)).\n-If a standalone script fails due to a missing/broken dependency unrelated to the bug\n (ImportError, ModuleNotFoundError), do NOT try to mock or monkey-patch it — abandon\n the repro script and rely on run_tests() instead.\n-Always print() the WHOLE result of run_command, never a slice of it:\n     print(run_command(...))\n A command that \"produces no output\" often failed — the real error is in the\n stderr section or the exit code, and discarding them makes failures invisible.\n -Only your last ```python ...``` block will be executed\n -The sandbox is fully closed to internet\n\nWORKFLOW\n1. Locate: search_code / search_function_or_class_definition_in_code, then read_file the relevant lines.\n2. Diagnose the root cause before editing. Decide the smallest change that fixes it.\n3. Edit with edit_file. You MUST modify a source file; explaining the fix is not enough.\n4. Verify: print(get_patch()) to confirm the edit landed, then run_tests().\n5. Submit only when tests pass (or you have exhausted reasonable options).\n",
+  "error": null,
+  "timestamp": "2026-10-10T15:43:57.540467"
+}

@@ -22,8 +22,8 @@ class GroqProvider(BaseProvider):
         self.MODEL_MAP: dict[str, str] = {
             "gpt-oss-120b": "openai/gpt-oss-120b",
             "gpt-oss-20b": "openai/gpt-oss-20b",
+            "gpt-safeguard": "openai/gpt-oss-safeguard-20b",
             "qwen-3.8-27b": "qwen/qwen3.8-27b",
-            "qwen-3.6-27b": "qwen/qwen3.6-27b",
             "allam-7b": "allam-2-7b",
         }
 

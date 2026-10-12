@@ -1,0 +1,35 @@
+
+============================================================
+VALIDATING SOLUTION
+============================================================
+Task ID: 439
+Benchmark: mbpp
+Success claimed: True
+
+============================================================
+STEP 1: CORRECTNESS VALIDATION
+============================================================
+Correctness check detail: File "<string>", line 1
+    <function multiple_to_single at 0x79b7f4125e10>
+    ^
+SyntaxError: invalid syntax
+Correctness: FAILED
+
+============================================================
+STEP 2: METRICS VALIDATION
+============================================================
+Iterations: 3 / 10 OK
+Input tokens: 1264 / 6000 OK
+Output tokens: 1548 / 1500 EXCEEDED
+Time: 4.1s / 120.0s OK
+
+Errors:
+  - Output tokens 1548 exceeds limit 1500
+Metrics: INVALID
+
+============================================================
+FINAL RESULT
+============================================================
+Correctness: FAILED
+Metrics: INVALID
+Overall: FAILED

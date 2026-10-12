@@ -1,0 +1,34 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 233 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find the lateral surface area of a cylinder.
+
+── Step 1/10 · in 164 · out 464 · 3.5s ─────────────────────────────────
+    import math
+    
+    def lateralsuface_cylinder(r, h):
+        return 2 * math.pi * r * h
+    Code executed with no output.
+
+── Step 2/10 · in 636 · out 362 · 11.3s ────────────────────────────────
+    print(lateralsuface_cylinder(4, 5))  # Output: 125.66370614359172
+    print(lateralsuface_cylinder(4, 10)) # Output: 251.32741228718345
+    stdout:
+    125.66370614359172
+    251.32741228718345
+
+── Step 3/10 · in 1052 · out 154 · 1.0s ────────────────────────────────
+    import math
+    
+    def lateralsuface_cylinder(r, h):
+        return 2 * math.pi * r * h
+    
+    # Test cases
+    print(lateralsuface_cylinder(4, 5))  # Output: 125.66370614359172
+    print(lateralsuface_cylinder(4, 10)) # Output: 251.32741228718345
+    
+    # Final answer
+    final_answer(lateralsuface_cylinder)
+✓ final_answer submitted
+
+━━ ✓ Solved in 3 step(s) · in 1852 · out 980 · 15.9s ━━━━━━━━━━━━━━━━━━━

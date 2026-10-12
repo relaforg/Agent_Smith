@@ -1,0 +1,17 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 262 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to split a given list into two parts where the length of the first part of the list is given.
+
+── Step 1/10 · in 575 · out 58 · 0.7s ──────────────────────────────────
+    code = r'''
+    def split_two_parts(list1, L):
+        return (list1[:L], list1[L:])
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 575 · out 58 · 1.0s ━━━━━━━━━━━━━━━━━━━━━━

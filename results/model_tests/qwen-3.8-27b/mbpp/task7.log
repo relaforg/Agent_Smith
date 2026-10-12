@@ -1,0 +1,29 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · qwen-3.8-27b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 605 · out 148 · 1.5s ─────────────────────────────────
+    code = r'''
+    def group_tuples(Input):
+        result = []
+        i = 0
+        n = len(Input)
+        while i < n:
+            first = Input[i][0]
+            group = [Input[i][1]]
+            j = i + 1
+            while j < n and Input[j][0] == first:
+                group.append(Input[j][1])
+                j += 1
+            result.append((first,) + tuple(group))
+            i = j
+        return result
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 605 · out 148 · 1.7s ━━━━━━━━━━━━━━━━━━━━━

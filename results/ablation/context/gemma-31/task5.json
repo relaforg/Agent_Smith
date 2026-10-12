@@ -1,0 +1,29 @@
+{
+  "task_id": "287",
+  "benchmark": "mbpp",
+  "success": false,
+  "solution": "",
+  "iterations": 1,
+  "total_requests": 1,
+  "total_input_tokens": 0,
+  "total_output_tokens": 0,
+  "total_time_seconds": 30.696267235998675,
+  "steps": [
+    {
+      "step": 1,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "request_time_ms": 8311.46653199903,
+      "timestamp": "2026-10-10T13:55:37.388116",
+      "api_url": "",
+      "model_name": "google/gemma-4-31b-it:free",
+      "llm_output": "```python",
+      "sandbox_input": "",
+      "sandbox_output": "Code executed with no output.",
+      "retries": 0
+    }
+  ],
+  "system_prompt": "\nYou are solving one MBPP task.\n\nreturn ```python ...``` blocks\n\nreturn ```python final_answer(function_code)``` to finish the task\n",
+  "error": "LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemma-31' failed. Errors: {'openrouter': HTTPStatusError(\"Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\")}",
+  "timestamp": "2026-10-10T13:55:59.770727"
+}

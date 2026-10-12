@@ -1,0 +1,11 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 404: {"error":{"message":"The model `qwen/qwen3.6-27b` does not exist or you do not have access to it.","type":"invalid_request_error","code":"model_not_found"}}
+
+Provider 'groq' failed for model 'qwen-3.6-27b': Client error '404 Not Found' for url 'https://api.groq.com/openai/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404. Checking for alternative provider hosting identical model...
+━━ MBPP task 167 · qwen-3.6-27b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+━━ ✗ Not solved after 0 step(s) · in 0 · out 0 · 0.2s ━━━━━━━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'qwen-3.6-27b' failed. Errors: {'groq': HTTPStatusError("Client error '404 Not Found' for url 'https://api.groq.com/openai/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404")}

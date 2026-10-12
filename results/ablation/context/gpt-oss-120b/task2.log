@@ -1,0 +1,156 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 472 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to check whether the given list contains consecutive numbers or not.
+
+── Step 1/10 · in 176 · out 529 · 1.4s ─────────────────────────────────
+    def check_Consecutive(l):
+        """
+        Returns True if the elements of the list `l` can be arranged to form a sequence
+        of consecutive integers without any gaps or duplicates. Otherwise returns False.
+    
+        The check is order‑agnostic: [3, 1, 2] is considered consecutive because it can be
+        reordered to [1, 2, 3].
+    
+        Parameters
+        ----------
+        l : list[int]
+            List of integers to be examined.
+    
+        Returns
+        -------
+        bool
+            True if the list contains consecutive numbers, False otherwise.
+        """
+        # An empty list or a single element cannot be considered a "consecutive sequence"
+        if len(l) < 2:
+            return False
+    
+        # Duplicates break consecutiveness
+        if len(set(l)) != len(l):
+            return False
+    
+        # For a set of consecutive numbers, the range (max - min) must be exactly len-1
+        return max(l) - min(l) == len(l) - 1
+    
+    
+    # Example test cases
+    assert check_Consecutive([1, 2, 3, 5, 6]) == False
+    assert check_Consecutive([1, 2, 1]) == False
+    assert check_Consecutive([4, 2, 3, 5, 1]) == True   # can be reordered to 1..5
+    assert check_Consecutive([10, 9, 8, 7]) == True     # descending order
+    Code executed with no output.
+
+── Step 2/10 · in 514 · out 235 · 0.7s ─────────────────────────────────
+    def check_Consecutive(l):
+        """
+        Check whether the given list contains consecutive numbers.
+    
+        The function returns True if the elements of the list can be rearranged
+        to form a sequence of consecutive integers without any gaps or duplicates.
+        Otherwise it returns False.
+    
+        Parameters
+        ----------
+        l : list[int]
+            List of integers to be examined.
+    
+        Returns
+        -------
+        bool
+            True if the list contains consecutive numbers, False otherwise.
+        """
+        # Need at least two distinct numbers to form a consecutive sequence
+        if len(l) < 2:
+            return False
+    
+        # Duplicates break consecutiveness
+        if len(set(l)) != len(l):
+            return False
+    
+        # For a set of consecutive numbers, max - min must equal length - 1
+        return max(l) - min(l) == len(l) - 1
+    Code executed with no output.
+
+── Step 3/10 · in 732 · out 606 · 1.5s ─────────────────────────────────
+    final_answer(
+    def check_Consecutive(l):
+        """
+        Returns True if the list can be reordered to form a sequence of consecutive
+        integers without gaps or duplicates; otherwise returns False.
+        """
+        # Need at least two distinct numbers to be considered a consecutive range
+        if len(l) < 2:
+            return False
+    
+        # Duplicates break consecutiveness
+        if len(set(l)) != len(l):
+            return False
+    
+        # For a set of consecutive numbers, max - min must equal length - 1
+        return max(l) - min(l) == len(l) - 1
+    )
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 252, in _exec_code
+        tree = ast.parse(code)
+      File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/ast.py", line 50, in parse
+        return compile(source, filename, mode, flags,
+      File "<unknown>", line 2
+        def check_Consecutive(l):
+        ^^^
+    SyntaxError: invalid syntax
+
+── Step 4/10 · in 1020 · out 525 · 1.5s ────────────────────────────────
+    final_answer(
+    def check_Consecutive(l):
+        """
+        Returns True if the list can be reordered to form a sequence of consecutive
+        integers without gaps or duplicates; otherwise returns False.
+        """
+        # Need at least two distinct numbers to be considered a consecutive range
+        if len(l) < 2:
+            return False
+    
+        # Duplicates break consecutiveness
+        if len(set(l)) != len(l):
+            return False
+    
+        # For a set of consecutive numbers, max - min must equal length - 1
+        return max(l) - min(l) == len(l) - 1
+    )
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 252, in _exec_code
+        tree = ast.parse(code)
+      File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/ast.py", line 50, in parse
+        return compile(source, filename, mode, flags,
+      File "<unknown>", line 2
+        def check_Consecutive(l):
+        ^^^
+    SyntaxError: invalid syntax
+↻ Same code as the previous step
+
+── Step 5/10 · in 1308 · out 540 · 1.5s ────────────────────────────────
+    final_answer(
+    """
+    def check_Consecutive(l):
+        \"\"\"
+        Returns True if the list can be reordered to form a sequence of consecutive
+        integers without gaps or duplicates; otherwise returns False.
+        \"\"\"
+        # Need at least two distinct numbers to be considered a consecutive range
+        if len(l) < 2:
+            return False
+    
+        # Duplicates break consecutiveness
+        if len(set(l)) != len(l):
+            return False
+    
+        # For a set of consecutive numbers, max - min must equal length - 1
+        return max(l) - min(l) == len(l) - 1
+    """
+    )
+✓ final_answer submitted
+
+━━ ✓ Solved in 5 step(s) · in 3750 · out 2435 · 6.9s ━━━━━━━━━━━━━━━━━━━

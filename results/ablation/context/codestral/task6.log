@@ -1,0 +1,43 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 431 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function that takes two lists and returns true if they have at least one common element.
+
+── Step 1/10 · in 122 · out 356 · 3.6s ─────────────────────────────────
+    def common_element(list1, list2):
+        set1 = set(list1)
+        set2 = set(list2)
+        if set1 & set2:
+            return True
+        else:
+            return None
+    Code executed with no output.
+
+── Step 2/10 · in 486 · out 396 · 3.4s ─────────────────────────────────
+    def common_element(list1, list2):
+        set1 = set(list1)
+        set2 = set(list2)
+        if set1 & set2:
+            return True
+        else:
+            return None
+    
+    # Test cases
+    print(common_element([1,2,3,4,5], [6,7,8,9]))  # Expected output: None
+    print(common_element(['a','b','c'], ['d','b','e']))  # Expected output: True
+    stdout:
+    None
+    True
+
+── Step 3/10 · in 902 · out 391 · 4.2s ─────────────────────────────────
+    print(common_element([1, 2, 3], [3, 4, 5]))  # Output: True
+    print(common_element([1, 2, 3], [4, 5, 6]))  # Output: None
+    stdout:
+    True
+    None
+
+── Step 4/10 · in 1314 · out 392 · 3.1s ────────────────────────────────
+    final_answer(common_element)
+✓ final_answer submitted
+
+━━ ✓ Solved in 4 step(s) · in 2824 · out 1535 · 14.5s ━━━━━━━━━━━━━━━━━━

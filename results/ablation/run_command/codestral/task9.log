@@ -1,0 +1,166 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench django__django-11490 · django/django · codestral ━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Composed queries cannot change the list of columns with values()/values_list().
+Description
+	
+Composed queries cannot change the list of columns when values()/values_list() is evaluated multiple times, e.g.
+>>> ReservedName.objects.create(name='a', order=2)
+>>> qs1 = ReservedName.objects.all()
+>>> print(qs1.union(qs1).values_list('name', 'order').get())
+('a', 2)
+>>> print(qs1.union(qs1).values_list('order').get())
+('a', 2)
+(see ​compiler.py#L428-L433).
+
+── Step 1/30 · in 991 · out 19 · 0.3s ──────────────────────────────────
+    print(search_code("values_list", "django/db/models/query.py"))
+    stdout:
+    /testbed/django/db/models/query.py:121     Iterable returned by QuerySet.values_list(flat=False) that yields a tuple
+    /testbed/django/db/models/query.py:151     Iterable returned by QuerySet.values_list(named=True) that yields a
+    /testbed/django/db/models/query.py:177     Iterable returned by QuerySet.values_list(flat=True) that yields single
+    /testbed/django/db/models/query.py:693             raise TypeError("Cannot call delete() after .values() or .values_list()")
+    /testbed/django/db/models/query.py:800     def values_list(self, *fields, flat=False, named=False):
+    /testbed/django/db/models/query.py:804             raise TypeError("'flat' is not valid when values_list is called with more than one field.")
+    /testbed/django/db/models/query.py:843         ).values_list(
+    /testbed/django/db/models/query.py:864         ).values_list(
+    /testbed/django/db/models/query.py:987             raise TypeError("Cannot call select_related() after .values() or .values_list()")
+    /testbed/django/db/models/query.py:1110             raise TypeError("Cannot call defer() after .values() or .values_list()")
+    /testbed/django/db/models/query.py:1125             raise TypeError("Cannot call only() after .values() or .values_list()")
+    /testbed/django/db/models/query.py:1592                         # values_list(flat=True), for example (TypeError) or
+
+── Step 2/30 · in 1395 · out 28 · 0.8s ─────────────────────────────────
+    print(read_file("/testbed/django/db/models/query.py", 800, 810))
+    stdout:
+    800:     def values_list(self, *fields, flat=False, named=False):
+    801:         if flat and named:
+    802:             raise TypeError("'flat' and 'named' can't be used together.")
+    803:         if flat and len(fields) > 1:
+    804:             raise TypeError("'flat' is not valid when values_list is called with more than one field.")
+    805: 
+    806:         field_names = {f for f in fields if not hasattr(f, 'resolve_expression')}
+    807:         _fields = []
+    808:         expressions = {}
+    809:         counter = 1
+    810:         for field in fields:
+
+── Step 3/30 · in 1622 · out 22 · 0.5s ─────────────────────────────────
+    print(search_code("compiler.py", "django/db/models/sql/compiler.py"))
+    stdout:
+    No match
+
+── Step 4/30 · in 1686 · out 21 · 0.4s ─────────────────────────────────
+    print(search_code("compiler.py", "django/db/models/sql/*.py"))
+    stdout:
+    No match
+
+── Step 5/30 · in 1749 · out 20 · 0.4s ─────────────────────────────────
+    print(search_code("compiler.py", "django/db/models/*.py"))
+    stdout:
+    No match
+
+── Step 6/30 · in 1811 · out 19 · 0.4s ─────────────────────────────────
+    print(search_code("compiler.py", "django/db/*.py"))
+    stdout:
+    No match
+
+── Step 7/30 · in 1872 · out 18 · 0.5s ─────────────────────────────────
+    print(search_code("compiler.py", "django/*.py"))
+    stdout:
+    No match
+
+── Step 8/30 · in 1932 · out 17 · 0.5s ─────────────────────────────────
+    print(search_code("compiler.py", "*.py"))
+    stdout:
+    No match
+
+── Step 9/30 · in 1991 · out 15 · 1.6s ─────────────────────────────────
+    print(search_code("compiler.py", ""))
+    stdout:
+    /testbed/Django.egg-info/SOURCES.txt:3072 django/db/backends/mysql/compiler.py
+    /testbed/Django.egg-info/SOURCES.txt:3158 django/db/models/sql/compiler.py
+
+── Step 10/30 · in 2096 · out 30 · 0.4s ────────────────────────────────
+    print(read_file("/testbed/django/db/models/sql/compiler.py", 428, 433))
+    stdout:
+    428:                 if not compiler.query.values_select and self.query.values_select:
+    429:                     compiler.query.set_values((
+    430:                         *self.query.extra_select,
+    431:                         *self.query.values_select,
+    432:                         *self.query.annotation_select,
+    433:                     ))
+
+── Step 11/30 · in 2234 · out 30 · 0.4s ────────────────────────────────
+    print(read_file("/testbed/django/db/models/sql/compiler.py", 420, 440))
+    stdout:
+    420:                 if compiler.get_order_by():
+    421:                     raise DatabaseError('ORDER BY not allowed in subqueries of compound statements.')
+    422:         parts = ()
+    423:         for compiler in compilers:
+    424:             try:
+    425:                 # If the columns list is limited, then all combined queries
+    426:                 # must have the same columns list. Set the selects defined on
+    427:                 # the query on all combined queries, if not already set.
+    428:                 if not compiler.query.values_select and self.query.values_select:
+    429:                     compiler.query.set_values((
+    430:                         *self.query.extra_select,
+    431:                         *self.query.values_select,
+    432:                         *self.query.annotation_select,
+    433:                     ))
+    434:                 part_sql, part_args = compiler.as_sql()
+    435:                 if compiler.query.combinator:
+    436:                     # Wrap in a subquery if wrapping in parentheses isn't
+    437:                     # supported.
+    438:                     if not features.supports_parentheses_in_compound:
+    439:                         part_sql = 'SELECT * FROM ({})'.format(part_sql)
+    440:                     # Add parentheses when combining with compound query if not
+
+── Step 12/30 · in 2587 · out 55 · 0.8s ────────────────────────────────
+    edit_file("/testbed/django/db/models/sql/compiler.py",
+        "if not compiler.query.values_select and self.query.values_select:",
+        "if not compiler.query.values_select and self.query.values_select and not compiler.query.values_list_select:")
+    Code executed with no output.
+
+── Step 13/30 · in 2684 · out 10 · 0.7s ────────────────────────────────
+    print(get_patch())
+    stdout:
+    diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+    index a44adfc760..e4c045a2fe 100644
+    --- a/django/db/models/sql/compiler.py
+    +++ b/django/db/models/sql/compiler.py
+    @@ -425,7 +425,7 @@ class SQLCompiler:
+                     # If the columns list is limited, then all combined queries
+                     # must have the same columns list. Set the selects defined on
+                     # the query on all combined queries, if not already set.
+    -                if not compiler.query.values_select and self.query.values_select:
+    +                if not compiler.query.values_select and self.query.values_select and not compiler.query.values_list_select:
+                         compiler.query.set_values((
+                             *self.query.extra_select,
+                             *self.query.values_select,
+
+── Step 14/30 · in 2922 · out 10 · 2.8s ────────────────────────────────
+    print(run_tests())
+    stdout:
+    [0, 'Generating locales (this might take a while)...\n  en_US.UTF-8... done\nGeneration complete.\nOn branch main\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   django/db/models/sql/compiler.py\n\nno changes added to commit (use "git add" and/or "git commit -a")\ncommit 1fb7f8c059da296176092b73f0818f740abb0ab5\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 01:02:43 2026 +0000\n\n    SWE-bench\ndiff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py\nindex a44adfc760..e4c045a2fe 100644\n--- a/django/db/models/sql/compiler.py\n+++ b/django/db/models/sql/compiler.py\n@@ -425,7 +425,7 @@ class SQLCompiler:\n                 # If the columns list is limited, then all combined queries\n                 # must have the same columns list. Set the selects defined on\n                 # the query on all combined queries, if not already set.\n-                if not compiler.query.values_select and self.query.values_select:\n+                if not compiler.query.values_select and self.query.values_select and not compiler.query.values_list_select:\n                     compiler.query.set_values((\n                         *self.query.extra_select,\n                         *self.query.values_select,\nObtaining file:///testbed\nRequirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20260813010243) (2024.2)\nRequirement already satisfied: sqlparse in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20260813010243) (0.4.4)\nInstalling collected packages: Django\n  Attempting uninstall: Django\n    Found existing installation: Django 3.0.dev20190619064046\n    Uninstalling Django-3.0.dev20190619064046:\n      Successfully uninstalled Django-3.0.dev20190619064046\n  Running setup.py develop for Django\nSuccessfully installed Django-3.0.dev20260813010243\nTesting against Django installed in \'/testbed/django\'\nImporting application queries\nSkipping setup of unused database(s): other.\nOperations to perform:\n  Synchronize unmigrated apps: auth, contenttypes, messages, queries, sessions, staticfiles\n  Apply all migrations: admin, sites\nSynchronizing apps without migrations:\n  Creating tables...\n    Creating table django_content_type\n    Creating table auth_permission\n    Creating table auth_group\n    Creating table auth_user\n    Creating table django_session\n    Creating table queries_dumbcategory\n    Creating table queries_namedcategory\n    Creating table queries_tag\n    Creating table queries_note\n    Creating table queries_annotation\n    Creating table queries_extrainfo\n    Creating table queries_author\n    Creating table queries_item\n    Creating table queries_report\n    Creating table queries_reportcomment\n    Creating table queries_ranking\n    Creating table queries_cover\n    Creating table queries_number\n    Creating table queries_valid\n    Creating table queries_x\n    Creating table queries_y\n    Creating table queries_loopx\n    Creating table queries_loopy\n    Creating table queries_loopz\n    Creating table queries_managedmodel\n    Creating table queries_detail\n    Creating table queries_member\n    Creating table queries_child\n    Creating table queries_custompk\n    Creating table queries_related\n    Creating table queries_custompktag\n    Creating table queries_celebrity\n    Creating table queries_tvchef\n    Creating table queries_fan\n    Creating table queries_leafa\n    Creating table queries_leafb\n    Creating table queries_join\n    Creating table queries_reservedname\n    Creating table queries_sharedconnection\n    Creating table queries_pointera\n    Creating table queries_pointerb\n    Creating table queries_singleobject\n    Creating table queries_relatedobject\n    Creating table queries_plaything\n    Creating table queries_article\n    Creating table queries_food\n    Creating table queries_eaten\n    Creating table queries_node\n    Creating table queries_objecta\n    Creating table queries_childobjecta\n    Creating table queries_objectb\n    Creating table queries_objectc\n    Creating table queries_simplecategory\n    Creating table queries_specialcategory\n    Creating table queries_categoryitem\n    Creating table queries_mixedcasefieldcategoryitem\n    Creating table queries_mixedcasedbcolumncategoryitem\n    Creating table queries_onetoonecategory\n    Creating table queries_categoryrelationship\n    Creating table queries_commonmixedcaseforeignkeys\n    Creating table queries_nullablename\n    Creating table queries_modeld\n    Creating table queries_modelc\n    Creating table queries_modelb\n    Creating table queries_modela\n    Creating table queries_job\n    Creating table queries_jobresponsibilities\n    Creating table queries_responsibility\n    Creating table queries_fk1\n    Creating table queries_fk2\n    Creating table queries_fk3\n    Creating table queries_basea\n    Creating table queries_identifier\n    Creating table queries_program\n    Creating table queries_channel\n    Creating table queries_book\n    Creating table queries_chapter\n    Creating table queries_paragraph\n    Creating table queries_page\n    Creating table queries_myobject\n    Creating table queries_order\n    Creating table queries_orderitem\n    Creating table queries_baseuser\n    Creating table queries_task\n    Creating table queries_staff\n    Creating table queries_staffuser\n    Creating table queries_ticket21203parent\n    Creating table queries_ticket21203child\n    Creating table queries_person\n    Creating table queries_company\n    Creating table queries_employment\n    Creating table queries_school\n    Creating table queries_student\n    Creating table queries_classroom\n    Creating table queries_teacher\n    Creating table queries_ticket23605aparent\n    Creating table queries_ticket23605a\n    Creating table queries_ticket23605b\n    Creating table queries_ticket23605c\n    Creating table Individual\n    Creating table RelatedIndividual\n    Creating table queries_customdbcolumn\n    Running deferred SQL...\nRunning migrations:\n  Applying admin.0001_initial... OK\n  Applying admin.0002_logentry_remove_auto_add... OK\n  Applying admin.0003_logentry_add_action_flag_choices... OK\n  Applying sites.0001_initial... OK\n  Applying sites.0002_alter_domain_unique... OK\nSystem check identified no issues (1 silenced).\n']
+
+── Step 15/30 · in 4548 · out 11 · 0.4s ────────────────────────────────
+    final_answer(get_patch())
+✓ final_answer submitted
+
+━━ ✓ Patch submitted in 15 step(s) · in 32120 · out 325 · 81.3s ━━━━━━━━
+  submitted patch
+    diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+    index a44adfc760..e4c045a2fe 100644
+    --- a/django/db/models/sql/compiler.py
+    +++ b/django/db/models/sql/compiler.py
+    @@ -425,7 +425,7 @@ class SQLCompiler:
+                     # If the columns list is limited, then all combined queries
+                     # must have the same columns list. Set the selects defined on
+                     # the query on all combined queries, if not already set.
+    -                if not compiler.query.values_select and self.query.values_select:
+    +                if not compiler.query.values_select and self.query.values_select and not compiler.query.values_list_select:
+                         compiler.query.set_values((
+                             *self.query.extra_select,
+                             *self.query.values_select,

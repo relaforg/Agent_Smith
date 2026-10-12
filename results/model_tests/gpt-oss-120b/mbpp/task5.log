@@ -1,0 +1,17 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 287 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find the sum of squares of first n even natural numbers.
+
+── Step 1/10 · in 571 · out 383 · 1.4s ─────────────────────────────────
+    code = r'''
+    def square_Sum(n):
+        return (2 * n * (n + 1) * (2 * n + 1)) // 3
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 571 · out 383 · 1.6s ━━━━━━━━━━━━━━━━━━━━━

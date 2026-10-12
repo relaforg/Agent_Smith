@@ -1,0 +1,135 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench django__django-13741 · django/django · ministral ━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Set disabled prop on ReadOnlyPasswordHashField
+Description
+	
+Currently the django.contrib.auth.forms.UserChangeForm defines a clean_password method that returns the initial password value to prevent (accidental) changes to the password value. It is also documented that custom forms for the User model need to define this method: ​https://docs.djangoproject.com/en/3.1/topics/auth/customizing/#a-full-example
+A while ago the forms.Field base class gained the ​disabled argument to:
+[disable] a form field using the disabled HTML attribute so that it won’t be editable by users. Even if a user tampers with the field’s value submitted to the server, it will be ignored in favor of the value from the form’s initial data.
+It seems to me that this property could be set to True be default on the ReadOnlyPasswordHashField used to display the password hash. This way the clean_password is no longer necessary and the potential pitfall when using the ReadOnlyPasswordHashField without implementing clean_password is removed.
+
+── Step 1/30 · in 1342 · out 22 · 3.5s ─────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "django/contrib/auth/*.py")
+    Code executed with no output.
+
+── Step 2/30 · in 1406 · out 23 · 2.4s ─────────────────────────────────
+    search_code("class ReadOnlyPasswordHashField", "django/contrib/auth/*.py")
+    Code executed with no output.
+
+── Step 3/30 · in 1471 · out 20 · 2.7s ─────────────────────────────────
+    list_files("/testbed/django/contrib/auth/", "*.py")
+    Code executed with no output.
+
+── Step 4/30 · in 1533 · out 18 · 2.1s ─────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "*.py")
+    Code executed with no output.
+
+── Step 5/30 · in 1593 · out 20 · 3.6s ─────────────────────────────────
+    search_function_or_class_definition_in_code("ReadOnlyPasswordHashField")
+    Code executed with no output.
+
+── Step 6/30 · in 1655 · out 20 · 2.3s ─────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "django/forms/*.py")
+    Code executed with no output.
+
+── Step 7/30 · in 1717 · out 18 · 2.3s ─────────────────────────────────
+    list_files("/testbed/django/forms/", "*.py")
+    Code executed with no output.
+
+── Step 8/30 · in 1777 · out 21 · 3.1s ─────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "django/forms/fields.py")
+    Code executed with no output.
+
+── Step 9/30 · in 1840 · out 20 · 3.6s ─────────────────────────────────
+    search_code("class.*PasswordHashField", "django/forms/*.py")
+    Code executed with no output.
+
+── Step 10/30 · in 1902 · out 18 · 2.9s ────────────────────────────────
+    search_code("PasswordHashField", "django/forms/*.py")
+    Code executed with no output.
+
+── Step 11/30 · in 1962 · out 17 · 2.7s ────────────────────────────────
+    list_files("/testbed/django/", "*.py")
+    Code executed with no output.
+
+── Step 12/30 · in 2021 · out 18 · 2.1s ────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "*.py")
+    Code executed with no output.
+
+── Step 13/30 · in 2081 · out 18 · 2.4s ────────────────────────────────
+    search_code("password", "django/contrib/auth/forms.py")
+    Code executed with no output.
+
+── Step 14/30 · in 2141 · out 25 · 3.2s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 1, 50)
+    Code executed with no output.
+
+── Step 15/30 · in 2208 · out 20 · 2.7s ────────────────────────────────
+    search_code("UserChangeForm", "django/contrib/auth/forms.py")
+    Code executed with no output.
+
+── Step 16/30 · in 2270 · out 21 · 2.8s ────────────────────────────────
+    search_code("class UserChangeForm", "django/contrib/auth/forms.py")
+    Code executed with no output.
+
+── Step 17/30 · in 2333 · out 26 · 2.7s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 1, 100)
+    Code executed with no output.
+
+── Step 18/30 · in 2401 · out 21 · 3.5s ────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "django/forms/fields.py")
+    Code executed with no output.
+
+── Step 19/30 · in 2464 · out 19 · 3.0s ────────────────────────────────
+    search_code("class.*Field", "django/forms/fields.py")
+    Code executed with no output.
+
+── Step 20/30 · in 2525 · out 18 · 2.2s ────────────────────────────────
+    list_files("/testbed/django/forms/", "*.py")
+    Code executed with no output.
+
+── Step 21/30 · in 2585 · out 33 · 3.9s ────────────────────────────────
+    run_command(["find", "/testbed/django", "-name", "*.py", "-type", "f"], "/testbed")
+    Code executed with no output.
+
+── Step 22/30 · in 2660 · out 23 · 5.4s ────────────────────────────────
+    search_code("ReadOnlyPasswordHashField", "/testbed/django/**/*.py")
+    Code executed with no output.
+
+── Step 23/30 · in 2725 · out 21 · 2.9s ────────────────────────────────
+    search_code("PasswordHashField", "/testbed/django/**/*.py")
+    Code executed with no output.
+
+── Step 24/30 · in 2788 · out 21 · 2.8s ────────────────────────────────
+    search_code("password", "/testbed/django/contrib/auth/*.py")
+    Code executed with no output.
+
+── Step 25/30 · in 2851 · out 25 · 3.0s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 1, 30)
+    Code executed with no output.
+
+── Step 26/30 · in 2918 · out 28 · 3.7s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 100, 200)
+    Code executed with no output.
+
+── Step 27/30 · in 2988 · out 28 · 3.3s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 200, 300)
+    Code executed with no output.
+
+── Step 28/30 · in 3058 · out 25 · 3.2s ────────────────────────────────
+    read_file("/testbed/django/contrib/auth/forms.py", 1, 50)
+    Code executed with no output.
+
+── Step 29/30 · in 3125 · out 23 · 2.7s ────────────────────────────────
+    search_code("class.*PasswordHashField", "/testbed/django/forms/*.py")
+    Code executed with no output.
+
+── Step 30/30 · in 3190 · out 22 · 2.8s ────────────────────────────────
+    search_code("PasswordHashField", "/testbed/django/forms/fields.py")
+    Code executed with no output.
+
+━━ ✗ No patch submitted after 30 step(s) · in 67530 · out 652 · 239.9s ━
+Exhausted maximum iterations without submitting a patch via final_answer().

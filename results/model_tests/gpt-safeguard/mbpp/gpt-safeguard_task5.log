@@ -1,0 +1,8 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Provider 'groq' failed for model 'gpt-safeguard': All API keys exhausted. Checking for alternative provider hosting identical model...
+━━ MBPP task 287 · gpt-safeguard · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find the sum of squares of first n even natural numbers.
+
+━━ ✗ Not solved after 0 step(s) · in 0 · out 0 · 0.4s ━━━━━━━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-safeguard' failed. Errors: {'groq': RuntimeError('All API keys exhausted')}

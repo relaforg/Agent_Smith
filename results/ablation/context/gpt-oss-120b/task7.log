@@ -1,0 +1,42 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Provider 'groq' failed for model 'gpt-oss-120b': All API keys exhausted. Checking for alternative provider hosting identical model...
+━━ MBPP task 417 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 220 · out 577 · 1.5s ─────────────────────────────────
+    def group_tuples(Input):
+        """
+        Group a list of 2‑element tuples by their first element.
+        For each distinct first element, create a new tuple that starts with that
+        element followed by all second elements (in the order they appear).
+    
+        Parameters
+        ----------
+        Input : list[tuple]
+            List of 2‑element tuples.
+    
+        Returns
+        -------
+        list[tuple]
+            List of grouped tuples.
+    
+        Examples
+        --------
+        >>> group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')])
+        [('a', 'b', 'c'), ('d', 'e')]
+        >>> group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')])
+        [('f', 'g', 'g'), ('h', 'i')]
+        """
+        # Preserve insertion order of first elements (dict is ordered since Python 3.7)
+        groups = {}
+        for first, second in Input:
+            groups.setdefault(first, []).append(second)
+    
+        # Build the result list preserving the order of first appearance
+        result = [(first, *seconds) for first, seconds in groups.items()]
+        return result
+    Code executed with no output.
+
+━━ ✗ Not solved after 1 step(s) · in 220 · out 577 · 1.9s ━━━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-oss-120b' failed. Errors: {'groq': RuntimeError('All API keys exhausted')}

@@ -1,0 +1,23 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 400: {"error":{"message":"Tool choice is none, but model called a tool","type":"invalid_request_error","code":"tool_use_failed","failed_generation":"{\"name\": \"run_tests\", \"arguments\": {}}"}}
+
+Provider 'groq' failed for model 'gpt-oss-120b': Client error '400 Bad Request' for url 'https://api.groq.com/openai/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400. Checking for alternative provider hosting identical model...
+━━ SWE-bench django__django-11490 · django/django · gpt-oss-120b ━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Composed queries cannot change the list of columns with values()/values_list().
+Description
+	
+Composed queries cannot change the list of columns when values()/values_list() is evaluated multiple times, e.g.
+>>> ReservedName.objects.create(name='a', order=2)
+>>> qs1 = ReservedName.objects.all()
+>>> print(qs1.union(qs1).values_list('name', 'order').get())
+('a', 2)
+>>> print(qs1.union(qs1).values_list('order').get())
+('a', 2)
+(see ​compiler.py#L428-L433).
+
+━━ ✗ No patch submitted after 0 step(s) · in 0 · out 0 · 0.9s ━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-oss-120b' failed. Errors: {'groq': HTTPStatusError("Client error '400 Bad Request' for url 'https://api.groq.com/openai/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400")}

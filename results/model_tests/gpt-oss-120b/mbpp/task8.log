@@ -1,0 +1,17 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 470 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find the pairwise addition of the elements of the given tuples.
+
+── Step 1/10 · in 615 · out 309 · 1.1s ─────────────────────────────────
+    code = r'''
+    def add_pairwise(test_tup):
+        return tuple(test_tup[i] + test_tup[i+1] for i in range(len(test_tup)-1))
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 615 · out 309 · 1.4s ━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,39 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 401: {"error":{"message":"Missing Authentication header","code":401}}
+Provider 'openrouter' failed for model 'gemma-31': Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Checking for alternative provider hosting identical model...
+━━ MBPP task 167 · gemma-31 · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+── Step 1/10 · in 116 · out 174 · 62.7s ────────────────────────────────
+    final_answer(next_power_of_2)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'next_power_of_2' is not defined
+
+── Step 2/10 · in 385 · out 168 · 62.7s ────────────────────────────────
+    final_answer(next_power_of_2)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'next_power_of_2' is not defined
+↻ Same code as the previous step
+
+── Step 3/10 · in 648 · out 191 · 63.5s ────────────────────────────────
+    final_answer(next_power_of_2)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'next_power_of_2' is not defined
+↻ Same code as the previous step
+
+━━ ✗ Not solved after 3 step(s) · in 1149 · out 533 · 212.5s ━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemma-31' failed. Errors: {'openrouter': HTTPStatusError("Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401")}

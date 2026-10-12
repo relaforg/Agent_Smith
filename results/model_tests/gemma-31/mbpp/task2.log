@@ -1,0 +1,23 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 472 · gemma-31 · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to check whether the given list contains consecutive numbers or not.
+
+── Step 1/10 · in 557 · out 119 · 77.0s ────────────────────────────────
+    code = r'''
+    def check_Consecutive(l):
+        if not l:
+            return True
+        sorted_l = sorted(l)
+        for i in range(len(sorted_l) - 1):
+            if sorted_l[i+1] - sorted_l[i] != 1:
+                return False
+        return True
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 557 · out 119 · 77.2s ━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,19 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 167 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+── Step 1/10 · in 578 · out 230 · 2.7s ─────────────────────────────────
+    code = r'''
+    def next_power_of_2(n):
+        if n <= 1:
+            return 1
+        return 1 << (n - 1).bit_length()
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 578 · out 230 · 2.9s ━━━━━━━━━━━━━━━━━━━━━
