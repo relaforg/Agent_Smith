@@ -1,0 +1,17 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 439 · ministral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to convert a list of multiple integers into a single integer.
+
+── Step 1/10 · in 542 · out 51 · 1.5s ──────────────────────────────────
+    code = r'''
+    def multiple_to_single(L):
+        return int(''.join(map(str, L)))
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 542 · out 51 · 1.7s ━━━━━━━━━━━━━━━━━━━━━━

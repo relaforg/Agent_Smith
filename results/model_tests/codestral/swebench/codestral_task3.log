@@ -1,0 +1,107 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench django__django-13741 · django/django · codestral ━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Set disabled prop on ReadOnlyPasswordHashField
+Description
+	
+Currently the django.contrib.auth.forms.UserChangeForm defines a clean_password method that returns the initial password value to prevent (accidental) changes to the password value. It is also documented that custom forms for the User model need to define this method: ​https://docs.djangoproject.com/en/3.1/topics/auth/customizing/#a-full-example
+A while ago the forms.Field base class gained the ​disabled argument to:
+[disable] a form field using the disabled HTML attribute so that it won’t be editable by users. Even if a user tampers with the field’s value submitted to the server, it will be ignored in favor of the value from the form’s initial data.
+It seems to me that this property could be set to True be default on the ReadOnlyPasswordHashField used to display the password hash. This way the clean_password is no longer necessary and the potential pitfall when using the ReadOnlyPasswordHashField without implementing clean_password is removed.
+
+── Step 1/30 · in 1342 · out 19 · 0.5s ─────────────────────────────────
+    print(search_code("ReadOnlyPasswordHashField", "*.py"))
+    stdout:
+    /testbed/tests/auth_tests/test_forms.py:7     PasswordResetForm, ReadOnlyPasswordHashField, ReadOnlyPasswordHashWidget,
+    /testbed/tests/auth_tests/test_forms.py:1024         field = ReadOnlyPasswordHashField()
+    /testbed/django/contrib/auth/forms.py:54 class ReadOnlyPasswordHashField(forms.Field):
+    /testbed/django/contrib/auth/forms.py:143     password = ReadOnlyPasswordHashField(
+
+── Step 2/30 · in 1499 · out 27 · 0.4s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 54, 54))
+    stdout:
+    54: class ReadOnlyPasswordHashField(forms.Field):
+
+── Step 3/30 · in 1578 · out 27 · 0.6s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 54, 54))
+    stdout:
+    54: class ReadOnlyPasswordHashField(forms.Field):
+! You repeated the exact same code as last turn and got the exact same result. Repeating it again will not help. Stop trying to run a standalone script: understand the actual bug before writing any more repro scripts.
+↻ Same code as the previous step
+
+── Step 4/30 · in 1700 · out 27 · 0.5s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 54, 54))
+    stdout:
+    54: class ReadOnlyPasswordHashField(forms.Field):
+! You repeated the exact same code as last turn and got the exact same result. Repeating it again will not help. Stop trying to run a standalone script: understand the actual bug before writing any more repro scripts.
+↻ Same code as the previous step
+
+── Step 5/30 · in 1822 · out 21 · 0.9s ─────────────────────────────────
+    print(search_function_or_class_definition_in_code("ReadOnlyPasswordHashField"))
+    stdout:
+    /testbed/django/contrib/auth/forms.py:54 class ReadOnlyPasswordHashField(forms.Field):
+
+── Step 6/30 · in 1905 · out 27 · 0.5s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 54, 54))
+    stdout:
+    54: class ReadOnlyPasswordHashField(forms.Field):
+
+── Step 7/30 · in 1984 · out 19 · 0.4s ─────────────────────────────────
+    print(search_code("disabled", "django/contrib/auth/forms.py"))
+    stdout:
+    No match
+
+── Step 8/30 · in 2045 · out 27 · 0.5s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 54, 54))
+    stdout:
+    54: class ReadOnlyPasswordHashField(forms.Field):
+
+── Step 9/30 · in 2124 · out 79 · 1.2s ─────────────────────────────────
+    edit_file("/testbed/django/contrib/auth/forms.py", "class ReadOnlyPasswordHashField(forms.Field):", "class ReadOnlyPasswordHashField(forms.Field):\n    def __init__(self, *args, **kwargs):\n        kwargs.setdefault('disabled', True)\n        super().__init__(*args, **kwargs)")
+    Code executed with no output.
+
+── Step 10/30 · in 2245 · out 10 · 0.9s ────────────────────────────────
+    print(get_patch())
+    stdout:
+    diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+    index b9eb33329f..f20b384f90 100644
+    --- a/django/contrib/auth/forms.py
+    +++ b/django/contrib/auth/forms.py
+    @@ -52,6 +52,9 @@ class ReadOnlyPasswordHashWidget(forms.Widget):
+     
+     
+     class ReadOnlyPasswordHashField(forms.Field):
+    +    def __init__(self, *args, **kwargs):
+    +        kwargs.setdefault('disabled', True)
+    +        super().__init__(*args, **kwargs)
+         widget = ReadOnlyPasswordHashWidget
+     
+         def __init__(self, *args, **kwargs):
+
+── Step 11/30 · in 2460 · out 10 · 2.9s ────────────────────────────────
+    print(run_tests())
+    stdout:
+    [0, 'Generating locales (this might take a while)...\n  en_US.UTF-8... done\nGeneration complete.\nOn branch main\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   django/contrib/auth/forms.py\n\nno changes added to commit (use "git add" and/or "git commit -a")\ncommit dcd0452a8fc9cbaf861d79557421f935acc43b8f\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 01:18:43 2026 +0000\n\n    SWE-bench\ndiff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py\nindex b9eb33329f..f20b384f90 100644\n--- a/django/contrib/auth/forms.py\n+++ b/django/contrib/auth/forms.py\n@@ -52,6 +52,9 @@ class ReadOnlyPasswordHashWidget(forms.Widget):\n \n \n class ReadOnlyPasswordHashField(forms.Field):\n+    def __init__(self, *args, **kwargs):\n+        kwargs.setdefault(\'disabled\', True)\n+        super().__init__(*args, **kwargs)\n     widget = ReadOnlyPasswordHashWidget\n \n     def __init__(self, *args, **kwargs):\nObtaining file:///testbed\nRequirement already satisfied: asgiref>=3.2.10 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (3.4.1)\nRequirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (2024.2)\nRequirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (0.4.4)\nRequirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2.10->Django==3.2) (4.1.1)\nInstalling collected packages: Django\n  Attempting uninstall: Django\n    Found existing installation: Django 3.2\n    Uninstalling Django-3.2:\n      Successfully uninstalled Django-3.2\n  Running setup.py develop for Django\nSuccessfully installed Django-3.2\nTesting against Django installed in \'/testbed/django\'\nImporting application auth_tests\nSkipping setup of unused database(s): other.\nOperations to perform:\n  Synchronize unmigrated apps: auth, auth_tests, contenttypes, messages, sessions, staticfiles\n  Apply all migrations: admin, sites\nSynchronizing apps without migrations:\n  Creating tables...\n    Creating table django_content_type\n    Creating table auth_permission\n    Creating table auth_group\n    Creating table auth_user\n    Creating table django_session\n    Creating table auth_tests_customuser\n    Creating table auth_tests_customuserwithoutisactivefield\n    Creating table auth_tests_extensionuser\n    Creating table auth_tests_custompermissionsuser\n    Creating table auth_tests_customusernonuniqueusername\n    Creating table auth_tests_isactivetestuser1\n    Creating table auth_tests_minimaluser\n    Creating table auth_tests_nopassworduser\n    Creating table auth_tests_concrete\n    Creating table auth_tests_uuiduser\n    Creating table auth_tests_customemailfield\n    Creating table auth_tests_email\n    Creating table auth_tests_customuserwithfk\n    Creating table auth_tests_integerusernameuser\n    Creating table auth_tests_userwithdisabledlastloginfield\n    Creating table auth_tests_organization\n    Creating table auth_tests_customuserwithm2m\n    Creating table auth_tests_customuserwithm2mthrough\n    Creating table auth_tests_membership\n    Running deferred SQL...\nRunning migrations:\n  Applying admin.0001_initial... OK\n  Applying admin.0002_logentry_remove_auto_add... OK\n  Applying admin.0003_logentry_add_action_flag_choices... OK\n  Applying sites.0001_initial... OK\n  Applying sites.0002_alter_domain_unique... OK\nSystem check identified no issues (0 silenced).\n']
+
+── Step 12/30 · in 3538 · out 11 · 0.4s ────────────────────────────────
+    final_answer(get_patch())
+✓ final_answer submitted
+
+━━ ✓ Patch submitted in 12 step(s) · in 24242 · out 304 · 64.9s ━━━━━━━━
+  submitted patch
+    diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+    index b9eb33329f..f20b384f90 100644
+    --- a/django/contrib/auth/forms.py
+    +++ b/django/contrib/auth/forms.py
+    @@ -52,6 +52,9 @@ class ReadOnlyPasswordHashWidget(forms.Widget):
+     
+     
+     class ReadOnlyPasswordHashField(forms.Field):
+    +    def __init__(self, *args, **kwargs):
+    +        kwargs.setdefault('disabled', True)
+    +        super().__init__(*args, **kwargs)
+         widget = ReadOnlyPasswordHashWidget
+     
+         def __init__(self, *args, **kwargs):

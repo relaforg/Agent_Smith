@@ -19,7 +19,9 @@ class MistralProvider(BaseProvider):
         self.client = httpx.Client(timeout=120.0)
 
         self.MODEL_MAP: dict[str, str] = {
-            "ministral": "ministral-14b-2512",
+            "ministral-14": "ministral-14b-2512",
+            "ministral-8": "ministral-8b-2512",
+            "ministral-3": "ministral-3b-2512",
             "codestral": "codestral-2508",
         }
 
@@ -91,7 +93,7 @@ class MistralProvider(BaseProvider):
             except httpx.HTTPStatusError as e:
                 # Rate limits (429) and transient server failures (500, 502, 503, 504)
                 if e.response.status_code in (429, 500, 502, 503, 504):
-                    time.sleep(2 ** min(attempt, 4))  # Exponential backoff
+                    time.sleep(2 ** min(attempt, 4))
                     self.next_key()
                     continue
                 raise

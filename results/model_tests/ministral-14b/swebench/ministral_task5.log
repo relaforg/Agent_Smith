@@ -1,0 +1,145 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench sympy__sympy-23534 · sympy/sympy · ministral ━━━━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Using symbols to create functions doesn't work if there is an extra layer of parentheses
+Sympy version == 1.10.1
+
+Using `symbols` to create symbol-like objects like instances of `Function` as shown in the [documentation](https://docs.sympy.org/latest/modules/core.html?highlight=symbols#symbols) creates objects of class `Symbol` instead of `Function` if there is an extra layer of parentheses.
+
+The extra layer of parentheses are necessary to deconstruct the output as separate tuples.
+
+Running the code:
+```
+q, u = smp.symbols(('q:2', 'u:2'), cls=smp.Function)
+print(type(q[0]))
+```
+#### Expected result:
+<class 'sympy.core.function.UndefinedFunction'>
+
+#### Actual result: 
+<class 'sympy.core.symbol.Symbol'>
+
+── Step 1/30 · in 1238 · out 19 · 2.2s ─────────────────────────────────
+    search_code("symbols.*cls.*Function", "*.py")
+    Code executed with no output.
+
+── Step 2/30 · in 1299 · out 17 · 20.2s ────────────────────────────────
+    search_function_or_class_definition_in_code("symbols")
+    Code executed with no output.
+
+── Step 3/30 · in 1358 · out 17 · 2.2s ─────────────────────────────────
+    search_code("def symbols", "sympy/*.py")
+    Code executed with no output.
+
+── Step 4/30 · in 1417 · out 18 · 1.4s ─────────────────────────────────
+    list_files("/testbed/sympy", "*.py")
+    Code executed with no output.
+
+── Step 5/30 · in 1477 · out 15 · 1.8s ─────────────────────────────────
+    list_files("/testbed", "*.py")
+    Code executed with no output.
+
+── Step 6/30 · in 1534 · out 31 · 3.2s ─────────────────────────────────
+    run_command(["find", "/testbed", "-type", "f", "-name", "*.py"], "/testbed")
+    Code executed with no output.
+
+── Step 7/30 · in 1607 · out 21 · 4.1s ─────────────────────────────────
+    run_command(["ls", "-la", "/testbed"], "/testbed")
+    Code executed with no output.
+
+── Step 8/30 · in 1670 · out 34 · 1.1s ─────────────────────────────────
+    run_command(["find", "/testbed/sympy", "-type", "f", "-name", "*.py"], "/testbed")
+    Code executed with no output.
+
+── Step 9/30 · in 1746 · out 24 · 2.3s ─────────────────────────────────
+    run_command(["ls", "-R", "/testbed/sympy"], "/testbed")
+    Code executed with no output.
+
+── Step 10/30 · in 1812 · out 21 · 3.6s ────────────────────────────────
+    search_code("def symbols", "/testbed/sympy/**/*.py")
+    Code executed with no output.
+
+── Step 11/30 · in 1875 · out 21 · 1.9s ────────────────────────────────
+    search_code("symbols", "/testbed/sympy/core/*.py")
+    Code executed with no output.
+
+── Step 12/30 · in 1938 · out 21 · 1.8s ────────────────────────────────
+    search_code("def symbols", "/testbed/sympy/core/*.py")
+    Code executed with no output.
+
+── Step 13/30 · in 2001 · out 20 · 3.1s ────────────────────────────────
+    search_code("symbols", "/testbed/sympy/*.py")
+    Code executed with no output.
+
+── Step 14/30 · in 2063 · out 20 · 2.2s ────────────────────────────────
+    search_code("def symbols", "/testbed/sympy/*.py")
+    Code executed with no output.
+
+── Step 15/30 · in 2125 · out 21 · 2.0s ────────────────────────────────
+    search_code("symbols", "/testbed/sympy/**/*.py")
+    Code executed with no output.
+
+── Step 16/30 · in 2188 · out 25 · 2.1s ────────────────────────────────
+    read_file("/testbed/sympy/__init__.py", 1, 50)
+    Code executed with no output.
+
+── Step 17/30 · in 2255 · out 29 · 1.5s ────────────────────────────────
+    run_command(["python", "-c", "import sympy; print(dir(sympy))"], "/testbed")
+    Code executed with no output.
+
+── Step 18/30 · in 2326 · out 36 · 1.7s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols.__module__)"], "/testbed")
+    Code executed with no output.
+
+── Step 19/30 · in 2404 · out 36 · 3.1s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols.__name__)"], "/testbed")
+    Code executed with no output.
+
+── Step 20/30 · in 2482 · out 44 · 8.6s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols.__module__, smp.symbols.__name__)"], "/testbed")
+    Code executed with no output.
+
+── Step 21/30 · in 2568 · out 33 · 2.6s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols)"], "/testbed")
+    Code executed with no output.
+
+── Step 22/30 · in 2643 · out 36 · 3.0s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols.__doc__)"], "/testbed")
+    Code executed with no output.
+
+── Step 23/30 · in 2721 · out 41 · 3.7s ────────────────────────────────
+    run_command(["python", "-c", "import inspect; import sympy as smp; print(inspect.getsource(smp.symbols))"], "/testbed")
+    Code executed with no output.
+
+── Step 24/30 · in 2804 · out 36 · 3.5s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols.__module__)"], "/testbed")
+    Code executed with no output.
+
+── Step 25/30 · in 2882 · out 31 · 4.6s ────────────────────────────────
+    run_command(["python", "-c", "import sympy; print(sympy.__file__)"], "/testbed")
+    Code executed with no output.
+
+── Step 26/30 · in 2955 · out 29 · 3.0s ────────────────────────────────
+    run_command(["find", "/testbed", "-name", "*.pyc", "-delete"], "/testbed")
+    Code executed with no output.
+
+── Step 27/30 · in 3026 · out 31 · 1.8s ────────────────────────────────
+    run_command(["python", "-c", "import sympy; print(sympy.__file__)"], "/testbed")
+    Code executed with no output.
+
+── Step 28/30 · in 3099 · out 33 · 2.4s ────────────────────────────────
+    run_command(["python", "-c", "import sympy as smp; print(smp.symbols)"], "/testbed")
+    Code executed with no output.
+
+── Step 29/30 · in 3174 · out 22 · 2.1s ────────────────────────────────
+    search_code("symbols", "/testbed/sympy/core/**/*.py")
+    Code executed with no output.
+
+── Step 30/30 · in 3238 · out 22 · 0.9s ────────────────────────────────
+    search_code("def symbols", "/testbed/sympy/core/**/*.py")
+    Code executed with no output.
+
+━━ ✗ No patch submitted after 30 step(s) · in 65925 · out 804 · 248.0s ━
+Exhausted maximum iterations without submitting a patch via final_answer().

@@ -4,7 +4,7 @@ VALIDATING SOLUTION
 ============================================================
 Task ID: django__django-13741
 Benchmark: swebench
-Success claimed: True
+Success claimed: False
 
 ============================================================
 STEP 1: CORRECTNESS VALIDATION
@@ -15,15 +15,18 @@ Correctness: FAILED
 ============================================================
 STEP 2: METRICS VALIDATION
 ============================================================
-Iterations: 1 / 30 OK
-Input tokens: 1436 / 300000 OK
-Output tokens: 1440 / 10000 OK
-Time: 33.1s / 900.0s OK
-Metrics: VALID
+Iterations: 22 / 30 OK
+Input tokens: 193721 / 300000 OK
+Output tokens: 14468 / 10000 EXCEEDED
+Time: 887.4s / 900.0s OK
+
+Errors:
+  - Output tokens 14468 exceeds limit 10000
+Metrics: INVALID
 
 ============================================================
 FINAL RESULT
 ============================================================
 Correctness: FAILED
-Metrics: VALID
+Metrics: INVALID
 Overall: FAILED

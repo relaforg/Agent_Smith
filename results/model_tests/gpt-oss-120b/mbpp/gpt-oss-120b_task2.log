@@ -1,0 +1,22 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 472 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to check whether the given list contains consecutive numbers or not.
+
+── Step 1/10 · in 583 · out 322 · 1.3s ─────────────────────────────────
+    code = r'''
+    def check_Consecutive(l):
+        if not l:
+            return True
+        s = set(l)
+        if len(s) != len(l):
+            return False
+        return max(l) - min(l) + 1 == len(l)
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 583 · out 322 · 1.6s ━━━━━━━━━━━━━━━━━━━━━

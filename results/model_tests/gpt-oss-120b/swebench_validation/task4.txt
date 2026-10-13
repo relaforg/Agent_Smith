@@ -16,9 +16,9 @@ Correctness: FAILED
 STEP 2: METRICS VALIDATION
 ============================================================
 Iterations: 4 / 30 OK
-Input tokens: 10388 / 300000 OK
-Output tokens: 2541 / 10000 OK
-Time: 42.8s / 900.0s OK
+Input tokens: 10340 / 300000 OK
+Output tokens: 1800 / 10000 OK
+Time: 60.0s / 900.0s OK
 Metrics: VALID
 
 ============================================================

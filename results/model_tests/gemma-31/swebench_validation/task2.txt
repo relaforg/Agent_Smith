@@ -15,10 +15,10 @@ Correctness: FAILED
 ============================================================
 STEP 2: METRICS VALIDATION
 ============================================================
-Iterations: 3 / 30 OK
-Input tokens: 5270 / 300000 OK
-Output tokens: 454 / 10000 OK
-Time: 169.1s / 900.0s OK
+Iterations: 0 / 30 OK
+Input tokens: 0 / 300000 OK
+Output tokens: 0 / 10000 OK
+Time: 392.3s / 900.0s OK
 Metrics: VALID
 
 ============================================================

@@ -9,27 +9,27 @@ Success claimed: True
 ============================================================
 STEP 1: CORRECTNESS VALIDATION
 ============================================================
-Started container e05269bbdc99850a8010d130045b892852aade1a38ab8529fa78e33215b77ebb
-2026-10-09 13:23:09,124 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+Started container 5f836c124364418b6f63ca59962c4eacdfcfe7f9a55e4ceb80ffc2051ad7579a
+2026-10-13 15:34:59,522 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
 Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-2026-10-09 13:23:09,125 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-2026-10-09 13:23:09,135 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/SWE-bench/SWE-bench_Verified/78f471bf655a3137b2e8a75af1501690ec009ec3/README.md "HTTP/1.1 200 OK"
-2026-10-09 13:23:09,240 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:09,533 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/SWE-bench/SWE-bench_Verified/SWE-bench/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:09,762 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/revision/78f471bf655a3137b2e8a75af1501690ec009ec3 "HTTP/1.1 200 OK"
-2026-10-09 13:23:09,871 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/.huggingface.yaml "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:10,005 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=SWE-bench/SWE-bench_Verified "HTTP/1.1 200 OK"
-2026-10-09 13:23:10,112 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/tree/78f471bf655a3137b2e8a75af1501690ec009ec3/data?recursive=true&expand=false "HTTP/1.1 200 OK"
-2026-10-09 13:23:10,217 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/tree/78f471bf655a3137b2e8a75af1501690ec009ec3?recursive=false&expand=false "HTTP/1.1 200 OK"
-2026-10-09 13:23:10,321 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-13 15:34:59,523 - huggingface_hub.utils._http - WARNING - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-10-13 15:34:59,533 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/SWE-bench/SWE-bench_Verified/78f471bf655a3137b2e8a75af1501690ec009ec3/README.md "HTTP/1.1 200 OK"
+2026-10-13 15:34:59,633 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
+2026-10-13 15:34:59,935 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/SWE-bench/SWE-bench_Verified/SWE-bench/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:00,039 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/revision/78f471bf655a3137b2e8a75af1501690ec009ec3 "HTTP/1.1 200 OK"
+2026-10-13 15:35:00,146 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:00,355 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=SWE-bench/SWE-bench_Verified "HTTP/1.1 200 OK"
+2026-10-13 15:35:00,464 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/tree/78f471bf655a3137b2e8a75af1501690ec009ec3/data?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-10-13 15:35:00,567 - httpx - INFO - HTTP Request: GET https://huggingface.co/api/datasets/SWE-bench/SWE-bench_Verified/tree/78f471bf655a3137b2e8a75af1501690ec009ec3?recursive=false&expand=false "HTTP/1.1 200 OK"
+2026-10-13 15:35:00,669 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/dataset_infos.json "HTTP/1.1 404 Not Found"
 Patch applied successfully using: git apply --verbose
-2026-10-09 13:23:10,540 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
-2026-10-09 13:23:10,551 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/SWE-bench/SWE-bench_Verified/78f471bf655a3137b2e8a75af1501690ec009ec3/README.md "HTTP/1.1 200 OK"
-2026-10-09 13:23:10,659 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:10,753 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/SWE-bench/SWE-bench_Verified/SWE-bench/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:10,865 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/.huggingface.yaml "HTTP/1.1 404 Not Found"
-2026-10-09 13:23:10,985 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=SWE-bench/SWE-bench_Verified "HTTP/1.1 200 OK"
-2026-10-09 13:23:11,086 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/dataset_infos.json "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:00,886 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/main/README.md "HTTP/1.1 307 Temporary Redirect"
+2026-10-13 15:35:00,897 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/api/resolve-cache/datasets/SWE-bench/SWE-bench_Verified/78f471bf655a3137b2e8a75af1501690ec009ec3/README.md "HTTP/1.1 200 OK"
+2026-10-13 15:35:00,997 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:01,090 - httpx - INFO - HTTP Request: HEAD https://s3.amazonaws.com/datasets.huggingface.co/datasets/datasets/SWE-bench/SWE-bench_Verified/SWE-bench/SWE-bench_Verified.py "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:01,196 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/.huggingface.yaml "HTTP/1.1 404 Not Found"
+2026-10-13 15:35:01,323 - httpx - INFO - HTTP Request: GET https://datasets-server.huggingface.co/info?dataset=SWE-bench/SWE-bench_Verified "HTTP/1.1 200 OK"
+2026-10-13 15:35:01,425 - httpx - INFO - HTTP Request: HEAD https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified/resolve/78f471bf655a3137b2e8a75af1501690ec009ec3/dataset_infos.json "HTTP/1.1 404 Not Found"
 + source /opt/miniconda3/bin/activate
 ++ _CONDA_ROOT=/opt/miniconda3
 ++ . /opt/miniconda3/etc/profile.d/conda.sh
@@ -163,7 +163,6 @@ export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
 + git config --global --add safe.directory /testbed
 + cd /testbed
 + git status
-+ git show
 On branch main
 Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
@@ -171,6 +170,7 @@ Changes not staged for commit:
 	modified:   sklearn/pipeline.py
 
 no changes added to commit (use "git add" and/or "git commit -a")
++ git show
 commit d74b6a76ebf523d73ab5bda9b5c14b09f3cd6fab
 Author: SWE-bench <setup@swebench.com>
 Date:   Sat Aug 15 07:48:43 2026 +0000
@@ -6715,29 +6715,18 @@ new mode 100755
 diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
 old mode 100644
 new mode 100755
-index 7eaf9a46f..7cc70881d
+index 7eaf9a46f..6ca654380
 --- a/sklearn/pipeline.py
 +++ b/sklearn/pipeline.py
-@@ -131,6 +131,9 @@ class Pipeline(_BaseComposition):
-         self._validate_steps()
-         self.memory = memory
+@@ -27,6 +27,8 @@ __all__ = ['Pipeline', 'FeatureUnion', 'make_pipeline', 'make_union']
  
+ 
+ class Pipeline(_BaseComposition):
 +    def __len__(self):
 +        return len(self.steps)
-+
-     def get_params(self, deep=True):
-         """Get parameters for this estimator.
+     """Pipeline of transforms with a final estimator.
  
-@@ -717,6 +720,9 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
-         self.transformer_weights = transformer_weights
-         self._validate_transformers()
- 
-+    def __len__(self):
-+        return len(self.steps)
-+
-     def get_params(self, deep=True):
-         """Get parameters for this estimator.
- 
+     Sequentially apply a list of transforms and a final estimator.
 diff --git a/sklearn/preprocessing/__init__.py b/sklearn/preprocessing/__init__.py
 old mode 100644
 new mode 100755
@@ -7338,16 +7327,16 @@ Using pip 21.2.2 from /opt/miniconda3/envs/testbed/lib/python3.6/site-packages/p
 Obtaining file:///testbed
     Running command python setup.py egg_info
     running egg_info
-    creating /tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info
-    writing /tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/PKG-INFO
-    writing dependency_links to /tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/dependency_links.txt
-    writing requirements to /tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/requires.txt
-    writing top-level names to /tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/top_level.txt
-    writing manifest file '/tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/SOURCES.txt'
-    reading manifest file '/tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/SOURCES.txt'
+    creating /tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info
+    writing /tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/PKG-INFO
+    writing dependency_links to /tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/dependency_links.txt
+    writing requirements to /tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/requires.txt
+    writing top-level names to /tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/top_level.txt
+    writing manifest file '/tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/SOURCES.txt'
+    reading manifest file '/tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/SOURCES.txt'
     reading manifest template 'MANIFEST.in'
     adding license file 'COPYING'
-    writing manifest file '/tmp/pip-pip-egg-info-o5o0q9ek/scikit_learn.egg-info/SOURCES.txt'
+    writing manifest file '/tmp/pip-pip-egg-info-r1e78t_b/scikit_learn.egg-info/SOURCES.txt'
     Partial import of sklearn during the build process.
 Requirement already satisfied: numpy>=1.11.0 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from scikit-learn==0.21.dev0) (1.19.2)
 Requirement already satisfied: scipy>=0.17.0 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from scikit-learn==0.21.dev0) (1.5.2)
@@ -7374,11 +7363,11 @@ Installing collected packages: scikit-learn
     openblas_info:
     C compiler: gcc -pthread -B /opt/miniconda3/envs/testbed/compiler_compat -Wl,--sysroot=/ -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -fPIC
 
-    creating /tmp/tmp2m7ceyzz/tmp
-    creating /tmp/tmp2m7ceyzz/tmp/tmp2m7ceyzz
+    creating /tmp/tmpcugf2sed/tmp
+    creating /tmp/tmpcugf2sed/tmp/tmpcugf2sed
     compile options: '-c'
-    gcc: /tmp/tmp2m7ceyzz/source.c
-    gcc -pthread -B /opt/miniconda3/envs/testbed/compiler_compat -Wl,--sysroot=/ /tmp/tmp2m7ceyzz/tmp/tmp2m7ceyzz/source.o -L/opt/miniconda3/envs/testbed/lib -lopenblas -o /tmp/tmp2m7ceyzz/a.out
+    gcc: /tmp/tmpcugf2sed/source.c
+    gcc -pthread -B /opt/miniconda3/envs/testbed/compiler_compat -Wl,--sysroot=/ /tmp/tmpcugf2sed/tmp/tmpcugf2sed/source.o -L/opt/miniconda3/envs/testbed/lib -lopenblas -o /tmp/tmpcugf2sed/a.out
       FOUND:
         libraries = ['openblas', 'openblas']
         library_dirs = ['/opt/miniconda3/envs/testbed/lib']
@@ -7574,13 +7563,13 @@ _____________________________ test_pipeline_memory _____________________________
 ----------------------------- Captured stdout call -----------------------------
 ________________________________________________________________________________
 [Memory] Calling sklearn.pipeline._fit_transform_one...
-_fit_transform_one(<sklearn.tests.test_pipeline.DummyTransf object at 0x7e6fdb436e48>, array([[5.1, ..., 0.2],
+_fit_transform_one(<sklearn.tests.test_pipeline.DummyTransf object at 0x721411210fd0>, array([[5.1, ..., 0.2],
        ...,
        [5.9, ..., 1.8]]), array([0, ..., 2]), None)
 ________________________________________________fit_transform_one - 0.0s, 0.0min
-[Memory]0.0s, 0.0min    : Loading _fit_transform_one from /tmp/tmp34zcomzt/joblib/sklearn/pipeline/_fit_transform_one/f021198b76a1401a026f06f47f4d8142
+[Memory]0.0s, 0.0min    : Loading _fit_transform_one from /tmp/tmp8fw0f36d/joblib/sklearn/pipeline/_fit_transform_one/f021198b76a1401a026f06f47f4d8142
 ___________________________________fit_transform_one cache loaded - 0.0s, 0.0min
-[Memory]0.0s, 0.0min    : Loading _fit_transform_one from /tmp/tmp34zcomzt/joblib/sklearn/pipeline/_fit_transform_one/f021198b76a1401a026f06f47f4d8142
+[Memory]0.0s, 0.0min    : Loading _fit_transform_one from /tmp/tmp8fw0f36d/joblib/sklearn/pipeline/_fit_transform_one/f021198b76a1401a026f06f47f4d8142
 ___________________________________fit_transform_one cache loaded - 0.0s, 0.0min
 =========================== short test summary info ============================
 PASSED sklearn/tests/test_pipeline.py::test_pipeline_init
@@ -7629,19 +7618,19 @@ PASSED sklearn/tests/test_pipeline.py::test_make_pipeline_memory
 + git checkout a62775e99f2a5ea3d51db7160fad783f6cd8a4c5 sklearn/tests/test_pipeline.py
 Updated 1 path from 0b34bd89f
 
-Runtime: 2.3s
+Runtime: 2.2s
 Resolution status: RESOLVED_FULL
 Evaluation passed: True
-Cleaned up container e05269bbdc99850a8010d130045b892852aade1a38ab8529fa78e33215b77ebb
+Cleaned up container 5f836c124364418b6f63ca59962c4eacdfcfe7f9a55e4ceb80ffc2051ad7579a
 Correctness: PASSED
 
 ============================================================
 STEP 2: METRICS VALIDATION
 ============================================================
-Iterations: 13 / 30 OK
-Input tokens: 149055 / 300000 OK
-Output tokens: 301 / 10000 OK
-Time: 76.3s / 900.0s OK
+Iterations: 12 / 30 OK
+Input tokens: 145373 / 300000 OK
+Output tokens: 266 / 10000 OK
+Time: 73.9s / 900.0s OK
 Metrics: VALID
 
 ============================================================

@@ -1,0 +1,20 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 431 · qwen-3.8-27b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function that takes two lists and returns true if they have at least one common element.
+
+── Step 1/10 · in 581 · out 74 · 0.3s ──────────────────────────────────
+    code = r'''
+    def common_element(list1, list2):
+        for x in list1:
+            if x in list2:
+                return True
+        return None
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 581 · out 74 · 0.5s ━━━━━━━━━━━━━━━━━━━━━━

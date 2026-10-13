@@ -22,7 +22,6 @@ class GroqProvider(BaseProvider):
         self.MODEL_MAP: dict[str, str] = {
             "gpt-oss-120b": "openai/gpt-oss-120b",
             "gpt-oss-20b": "openai/gpt-oss-20b",
-            "gpt-safeguard": "openai/gpt-oss-safeguard-20b",
             "qwen-3.8-27b": "qwen/qwen3.8-27b",
             "allam-7b": "allam-2-7b",
         }
@@ -94,6 +93,11 @@ class GroqProvider(BaseProvider):
 
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429:
+                    try:
+                        wait = float(e.response.headers.get("retry-after", ""))
+                    except ValueError:
+                        wait = 2 ** min(i, 5)
+                    time.sleep(min(wait, 60) + 0.5)
                     self.next_key()
                     continue
                 else:

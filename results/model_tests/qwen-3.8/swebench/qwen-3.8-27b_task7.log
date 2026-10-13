@@ -1,0 +1,186 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench django__django-13089 · django/django · qwen-3.8-27b ━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+cache.backends.db._cull sometimes fails with 'NoneType' object is not subscriptable
+Description
+	 
+		(last modified by Guillermo Bonvehí)
+	 
+I'm sporadically getting some cache errors using database backend.
+The error is: 'NoneType' object is not subscriptable
+And the backtrace:
+/usr/local/lib/python3.7/site-packages/django/core/handlers/base.py:143→ _get_response
+/usr/local/lib/python3.7/site-packages/django/template/response.py:108→ render
+/usr/local/lib/python3.7/site-packages/django/utils/decorators.py:156→ callback
+/usr/local/lib/python3.7/site-packages/django/middleware/cache.py:103→ process_response
+... (2 lines hidden) ...
+/usr/local/lib/python3.7/site-packages/django/core/cache/backends/db.py:136→ _base_set
+/usr/local/lib/python3.7/site-packages/django/core/cache/backends/db.py:277→ _cull
+This is using Django 2.2.11 but I see the same code is in master.
+​https://github.com/django/django/blob/master/django/core/cache/backends/db.py#L270
+				cursor.execute(
+					connection.ops.cache_key_culling_sql() % table,
+					[cull_num])
+				cursor.execute("DELETE FROM %s "
+							 "WHERE cache_key < %%s" % table,
+							 [cursor.fetchone()[0]])
+From what I can understand, the cursor after running connection.ops.cache_key_culling_sql() command is not returning any data, so cursor.fetchone()[0] afterwards fails.
+I guess a simple check to see if it contains data would be enough, may apply for an easy picking.
+Edit: Wording
+
+── Step 1/30 · in 1469 · out 31 · 0.3s ─────────────────────────────────
+    print(read_file("/testbed/django/core/cache/backends/db.py", 250, 290))
+    stdout:
+    250:                 ),
+    251:                 [key, connection.ops.adapt_datetimefield_value(now)]
+    252:             )
+    253:             return cursor.fetchone() is not None
+    254: 
+    255:     def _cull(self, db, cursor, now):
+    256:         if self._cull_frequency == 0:
+    257:             self.clear()
+    258:         else:
+    259:             connection = connections[db]
+    260:             table = connection.ops.quote_name(self._table)
+    261:             cursor.execute("DELETE FROM %s WHERE expires < %%s" % table,
+    262:                            [connection.ops.adapt_datetimefield_value(now)])
+    263:             cursor.execute("SELECT COUNT(*) FROM %s" % table)
+    264:             num = cursor.fetchone()[0]
+    265:             if num > self._max_entries:
+    266:                 cull_num = num // self._cull_frequency
+    267:                 cursor.execute(
+    268:                     connection.ops.cache_key_culling_sql() % table,
+    269:                     [cull_num])
+    270:                 cursor.execute("DELETE FROM %s "
+    271:                                "WHERE cache_key < %%s" % table,
+    272:                                [cursor.fetchone()[0]])
+    273: 
+    274:     def clear(self):
+    275:         db = router.db_for_write(self.cache_model_class)
+    276:         connection = connections[db]
+    277:         table = connection.ops.quote_name(self._table)
+    278:         with connection.cursor() as cursor:
+    279:             cursor.execute('DELETE FROM %s' % table)
+
+── Step 2/30 · in 1948 · out 24 · 0.4s ─────────────────────────────────
+    print(search_code("cache_key_culling_sql", "django/db/backends/*.py"))
+    stdout:
+    /testbed/django/db/backends/base/operations.py:77     def cache_key_culling_sql(self):
+    /testbed/django/db/backends/oracle/operations.py:72     def cache_key_culling_sql(self):
+
+── Step 3/30 · in 2069 · out 56 · 0.5s ─────────────────────────────────
+    print(read_file("/testbed/django/db/backends/base/operations.py", 70, 90))
+    print(read_file("/testbed/django/db/backends/oracle/operations.py", 65, 85))
+    stdout:
+    70:         """
+    71:         Return the maximum allowed batch size for the backend. The fields
+    72:         are the fields going to be inserted in the batch, the objs contains
+    73:         all the objects to be inserted.
+    74:         """
+    75:         return len(objs)
+    76: 
+    77:     def cache_key_culling_sql(self):
+    78:         """
+    79:         Return an SQL query that retrieves the first cache key greater than the
+    80:         n smallest.
+    81: 
+    82:         This is used by the 'db' cache backend to determine where to start
+    83:         culling.
+    84:         """
+    85:         return "SELECT cache_key FROM %s ORDER BY cache_key LIMIT 1 OFFSET %%s"
+    86: 
+    87:     def unification_cast_sql(self, output_field):
+    88:         """
+    ... (3 lines hidden) ...
+    66:         'AutoField': 'NUMBER(11)',
+    67:         'BigAutoField': 'NUMBER(19)',
+    68:         'SmallAutoField': 'NUMBER(5)',
+    69:         'TextField': cast_char_field_without_max_length,
+    70:     }
+    71: 
+    72:     def cache_key_culling_sql(self):
+    73:         return 'SELECT cache_key FROM %s ORDER BY cache_key OFFSET %%s ROWS FETCH FIRST 1 ROWS ONLY'
+    74: 
+    75:     def date_extract_sql(self, lookup_type, field_name):
+    76:         if lookup_type == 'week_day':
+    77:             # TO_CHAR(field, 'D') returns an integer from 1-7, where 1=Sunday.
+    78:             return "TO_CHAR(%s, 'D')" % field_name
+    79:         elif lookup_type == 'iso_week_day':
+    80:             return "TO_CHAR(%s - 1, 'D')" % field_name
+    81:         elif lookup_type == 'week':
+    82:             # IW = ISO week number
+    83:             return "TO_CHAR(%s, 'IW')" % field_name
+    84:         elif lookup_type == 'quarter':
+    85:             return "TO_CHAR(%s, 'Q')" % field_name
+
+── Step 4/30 · in 2728 · out 153 · 0.7s ────────────────────────────────
+    print(edit_file("/testbed/django/core/cache/backends/db.py",
+    """                cursor.execute(
+                        connection.ops.cache_key_culling_sql() % table,
+                        [cull_num])
+                    cursor.execute("DELETE FROM %s "
+                                   "WHERE cache_key < %%s" % table,
+                                   [cursor.fetchone()[0]])""",
+    """                cursor.execute(
+                        connection.ops.cache_key_culling_sql() % table,
+                        [cull_num])
+                    row = cursor.fetchone()
+                    if row is not None:
+                        cursor.execute("DELETE FROM %s "
+                                       "WHERE cache_key < %%s" % table,
+                                       [row[0]])"""))
+    stdout:
+
+── Step 5/30 · in 2929 · out 15 · 75.0s ────────────────────────────────
+    print(get_patch())
+    print(run_tests())
+    stdout:
+    diff --git a/django/core/cache/backends/db.py b/django/core/cache/backends/db.py
+    index 33c79c5a14..45383f9ba4 100644
+    --- a/django/core/cache/backends/db.py
+    +++ b/django/core/cache/backends/db.py
+    @@ -267,9 +267,11 @@ class DatabaseCache(BaseDatabaseCache):
+                     cursor.execute(
+                         connection.ops.cache_key_culling_sql() % table,
+                         [cull_num])
+    -                cursor.execute("DELETE FROM %s "
+    -                               "WHERE cache_key < %%s" % table,
+    -                               [cursor.fetchone()[0]])
+    +                row = cursor.fetchone()
+    +                if row is not None:
+    +                    cursor.execute("DELETE FROM %s "
+    +                                   "WHERE cache_key < %%s" % table,
+    +                                   [row[0]])
+     
+         def clear(self):
+             db = router.db_for_write(self.cache_model_class)
+    
+    [0, 'Generating locales (this might take a while)...\n  en_US.UTF-8... done\nGeneration complete.\nOn branch main\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   django/core/cache/backends/db.py\n\nno changes added to commit (use "git add" and/or "git commit -a")\ncommit d885c50a04a3453feb57de232ff81d8b512eab19\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 01:11:29 2026 +0000\n\n    SWE-bench\ndiff --git a/django/core/cache/backends/db.py b/django/core/cache/backends/db.py\nindex 33c79c5a14..45383f9ba4 100644\n--- a/django/core/cache/backends/db.py\n+++ b/django/core/cache/backends/db.py\n@@ -267,9 +267,11 @@ class DatabaseCache(BaseDatabaseCache):\n                 cursor.execute(\n                     connection.ops.cache_key_culling_sql() % table,\n                     [cull_num])\n-                cursor.execute("DELETE FROM %s "\n-                               "WHERE cache_key < %%s" % table,\n-                               [cursor.fetchone()[0]])\n+                row = cursor.fetchone()\n+                if row is not None:\n+                    cursor.execute("DELETE FROM %s "\n+                                   "WHERE cache_key < %%s" % table,\n+                                   [row[0]])\n \n     def clear(self):\n         db = router.db_for_write(self.cache_model_class)\nObtaining file:///testbed\nRequirement already satisfied: asgiref>=3.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (3.4.1)\nRequirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (2024.2)\nRequirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (0.4.4)\nRequirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2->Django==3.2) (4.1.1)\nInstalling collected packages: Django\n  Attempting uninstall: Django\n    Found existing installation: Django 3.2\n    Uninstalling Django-3.2:\n      Successfully uninstalled Django-3.2\n  Running setup.py develop for Django\nSuccessfully installed Django-3.2\nTesting against Django installed in \'/testbed/django\'\nImporting application cache\nOperations to perform:\n  Synchronize unmigrated apps: auth, cache, contenttypes, messages, sessions, staticfiles\n  Apply all migrations: admin, sites\nSynchronizing apps without migrations:\n  Creating tables...\n    Creating table django_content_type\n    Creating table auth_permission\n    Creating table auth_group\n    Creating table auth_user\n    Creating table django_session\n    Creating table cache_poll\n    Running deferred SQL...\nRunning migrations:\n  Applying admin.0001_initial... OK\n  Applying admin.0002_logentry_remove_auto_add... OK\n  Applying admin.0003_logentry_add_action_flag_choices... OK\n  Applying sites.0001_initial... OK\n  Applying sites.0002_alter_domain_unique... OK\nOperations to perform:\n  Synchronize unmigrated apps: auth, cache, contenttypes, messages, sessions, staticfiles\n  Apply all migrations: admin, sites\nSynchronizing apps without migrations:\n  Creating tables...\n    Creating table django_content_type\n    Creating table auth_permission\n    Creating table auth_group\n    Creating table auth_user\n    Creating table django_session\n    Creating table cache_poll\n    Running deferred SQL...\nRunning migrations:\n  Applying admin.0001_initial... OK\n  Applying admin.0002_logentry_remove_auto_add... OK\n  Applying admin.0003_logentry_add_action_flag_choices... OK\n  Applying sites.0001_initial... OK\n  Applying sites.0002_alter_domain_unique... OK\nSystem check identified no issues (0 silenced).\n']
+
+── Step 6/30 · in 4259 · out 12 · 0.6s ─────────────────────────────────
+    print(final_answer(get_patch()))
+✓ final_answer submitted
+
+━━ ✓ Patch submitted in 6 step(s) · in 15402 · out 291 · 102.6s ━━━━━━━━
+  submitted patch
+    diff --git a/django/core/cache/backends/db.py b/django/core/cache/backends/db.py
+    index 33c79c5a14..45383f9ba4 100644
+    --- a/django/core/cache/backends/db.py
+    +++ b/django/core/cache/backends/db.py
+    @@ -267,9 +267,11 @@ class DatabaseCache(BaseDatabaseCache):
+                     cursor.execute(
+                         connection.ops.cache_key_culling_sql() % table,
+                         [cull_num])
+    -                cursor.execute("DELETE FROM %s "
+    -                               "WHERE cache_key < %%s" % table,
+    -                               [cursor.fetchone()[0]])
+    +                row = cursor.fetchone()
+    +                if row is not None:
+    +                    cursor.execute("DELETE FROM %s "
+    +                                   "WHERE cache_key < %%s" % table,
+    +                                   [row[0]])
+     
+         def clear(self):
+             db = router.db_for_write(self.cache_model_class)

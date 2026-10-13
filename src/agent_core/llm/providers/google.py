@@ -56,7 +56,6 @@ class GoogleProvider(BaseProvider):
     ) -> LLMAnswer:
 
         model = self.resolve_model(model)
-        # Shorter than Mistral's retry loop: an MBPP task has 120s in total
         max_attempts = max(len(self.keys) * 2, 4)
 
         payload = {
@@ -88,8 +87,6 @@ class GoogleProvider(BaseProvider):
                 return LLMAnswer(
                     content=data["choices"][0]["message"].get("content") or "",
                     input_tokens=usage["prompt_tokens"],
-                    # completion_tokens leaves out the hidden thoughts, but
-                    # they are still generated tokens: count them as output
                     output_tokens=usage["total_tokens"] -
                     usage["prompt_tokens"],
                     model=model,

@@ -1,0 +1,189 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench sympy__sympy-23534 · sympy/sympy · qwen-3.8-27b ━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Using symbols to create functions doesn't work if there is an extra layer of parentheses
+Sympy version == 1.10.1
+
+Using `symbols` to create symbol-like objects like instances of `Function` as shown in the [documentation](https://docs.sympy.org/latest/modules/core.html?highlight=symbols#symbols) creates objects of class `Symbol` instead of `Function` if there is an extra layer of parentheses.
+
+The extra layer of parentheses are necessary to deconstruct the output as separate tuples.
+
+Running the code:
+```
+q, u = smp.symbols(('q:2', 'u:2'), cls=smp.Function)
+print(type(q[0]))
+```
+#### Expected result:
+<class 'sympy.core.function.UndefinedFunction'>
+
+#### Actual result: 
+<class 'sympy.core.symbol.Symbol'>
+
+── Step 1/30 · in 1230 · out 17 · 20.3s ────────────────────────────────
+    print(search_function_or_class_definition_in_code("symbols"))
+    stdout:
+    /testbed/sympy/assumptions/cnf.py:421     def symbols(self):
+    /testbed/sympy/core/symbol.py:586 def symbols(names, *, cls=Symbol, **args) -> Any:
+    /testbed/sympy/diffgeom/diffgeom.py:371     def symbols(self):
+    /testbed/sympy/stats/frv.py:70     def symbols(self):
+    /testbed/sympy/stats/frv.py:109     def symbols(self):
+    /testbed/sympy/stats/joint_rv.py:379     def symbols(self):
+    /testbed/sympy/stats/rv.py:79     def symbols(self):
+    /testbed/sympy/stats/rv.py:112     def symbols(self):
+    /testbed/sympy/stats/rv.py:136     def symbols(self):
+    /testbed/sympy/stats/rv.py:156     def symbols(self):
+    /testbed/sympy/stats/rv.py:211     def symbols(self):
+    /testbed/sympy/stats/rv.py:428     def symbols(self):
+    /testbed/sympy/stats/rv.py:576     def symbols(self):
+
+── Step 2/30 · in 1558 · out 30 · 0.6s ─────────────────────────────────
+    print(read_file("/testbed/sympy/core/symbol.py", 586, 700))
+    stdout:
+    586: def symbols(names, *, cls=Symbol, **args) -> Any:
+    587:     r"""
+    588:     Transform strings into instances of :class:`Symbol` class.
+    589: 
+    590:     :func:`symbols` function returns a sequence of symbols with names taken
+    591:     from ``names`` argument, which can be a comma or whitespace delimited
+    592:     string, or a sequence of strings::
+    593: 
+    594:         >>> from sympy import symbols, Function
+    595: 
+    596:         >>> x, y, z = symbols('x,y,z')
+    597:         >>> a, b, c = symbols('a b c')
+    598: 
+    599:     The type of output is dependent on the properties of input arguments::
+    600: 
+    601:         >>> symbols('x')
+    602:         x
+    603:         >>> symbols('x,')
+    604:         (x,)
+    ... (76 lines hidden) ...
+    681:     All newly created symbols have assumptions set according to ``args``::
+    682: 
+    683:         >>> a = symbols('a', integer=True)
+    684:         >>> a.is_integer
+    685:         True
+    686: 
+    687:         >>> x, y, z = symbols('x,y,z', real=True)
+    688:         >>> x.is_real and y.is_real and z.is_real
+    689:         True
+    690: 
+    691:     Despite its name, :func:`symbols` can create symbol-like objects like
+    692:     instances of Function or Wild classes. To achieve this, set ``cls``
+    693:     keyword argument to the desired type::
+    694: 
+    695:         >>> symbols('f,g,h', cls=Function)
+    696:         (f, g, h)
+    697: 
+    698:         >>> type(_[0])
+    699:         <class 'sympy.core.function.UndefinedFunction'>
+    700:
+
+── Step 3/30 · in 3278 · out 30 · 0.6s ─────────────────────────────────
+    print(read_file("/testbed/sympy/core/symbol.py", 700, 820))
+    stdout:
+    700: 
+    701:     """
+    702:     result = []
+    703: 
+    704:     if isinstance(names, str):
+    705:         marker = 0
+    706:         splitters = r'\,', r'\:', r'\ '
+    707:         literals: list[tuple[str, str]] = []
+    708:         for splitter in splitters:
+    709:             if splitter in names:
+    710:                 while chr(marker) in names:
+    711:                     marker += 1
+    712:                 lit_char = chr(marker)
+    713:                 marker += 1
+    714:                 names = names.replace(splitter, lit_char)
+    715:                 literals.append((lit_char, splitter[1:]))
+    716:         def literal(s):
+    717:             if literals:
+    718:                 for c, l in literals:
+    ... (82 lines hidden) ...
+    801:     Create symbols and inject them into the global namespace.
+    802: 
+    803:     Explanation
+    804:     ===========
+    805: 
+    806:     This calls :func:`symbols` with the same arguments and puts the results
+    807:     into the *global* namespace. It's recommended not to use :func:`var` in
+    808:     library code, where :func:`symbols` has to be used::
+    809: 
+    810:     Examples
+    811:     ========
+    812: 
+    813:     >>> from sympy import var
+    814: 
+    815:     >>> var('x')
+    816:     x
+    817:     >>> x # noqa: F821
+    818:     x
+    819: 
+    820:     >>> var('a,ab,abc')
+
+── Step 4/30 · in 4791 · out 52 · 13.3s ────────────────────────────────
+    print(run_command(["python", "-c", "from sympy import symbols, Function; q,u = symbols(('q:2','u:2'), cls=Function); print(type(q[0]))"], "/testbed"))
+    stdout:
+    exit_code: 1
+    --- stdout ---
+    --- stderr ---
+    Traceback (most recent call last):
+      File "/testbed/sympy/__init__.py", line 22, in <module>
+        import mpmath
+    ModuleNotFoundError: No module named 'mpmath'
+    
+    During handling of the above exception, another exception occurred:
+    
+    Traceback (most recent call last):
+      File "<string>", line 1, in <module>
+      File "/testbed/sympy/__init__.py", line 24, in <module>
+        raise ImportError("SymPy now depends on mpmath as an external library. "
+    ImportError: SymPy now depends on mpmath as an external library. See https://docs.sympy.org/latest/install.html#mpmath for more information.
+
+── Step 5/30 · in 5066 · out 148 · 20.8s ───────────────────────────────
+    print(edit_file("/testbed/sympy/core/symbol.py", "    else:\n        for name in names:\n            result.append(symbols(name, **args))\n\n        return type(names)(result)", "    else:\n        for name in names:\n            result.append(symbols(name, cls=cls, **args))\n\n        return type(names)(result)"))
+    print(get_patch())
+    stdout:
+    
+    diff --git a/sympy/core/symbol.py b/sympy/core/symbol.py
+    index f4a555c13f..2aca8bab27 100644
+    --- a/sympy/core/symbol.py
+    +++ b/sympy/core/symbol.py
+    @@ -791,7 +791,7 @@ def literal(s):
+             return tuple(result)
+         else:
+             for name in names:
+    -            result.append(symbols(name, **args))
+    +            result.append(symbols(name, cls=cls, **args))
+     
+             return type(names)(result)
+
+── Step 6/30 · in 5401 · out 10 · 26.7s ────────────────────────────────
+    print(run_tests())
+    stdout:
+    [0, 'On branch master\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   sympy/core/symbol.py\n\nno changes added to commit (use "git add" and/or "git commit -a")\ncommit aadc03208c308280233d66a3bfa623c367320ae6\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 04:03:11 2026 +0000\n\n    SWE-bench\ndiff --git a/sympy/core/symbol.py b/sympy/core/symbol.py\nindex f4a555c13f..2aca8bab27 100644\n--- a/sympy/core/symbol.py\n+++ b/sympy/core/symbol.py\n@@ -791,7 +791,7 @@ def literal(s):\n         return tuple(result)\n     else:\n         for name in names:\n-            result.append(symbols(name, **args))\n+            result.append(symbols(name, cls=cls, **args))\n \n         return type(names)(result)\n \nObtaining file:///testbed\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status \'done\'\nRequirement already satisfied: mpmath>=0.19 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from sympy==1.11.dev0) (1.3.0)\nInstalling collected packages: sympy\n  Attempting uninstall: sympy\n    Found existing installation: sympy 1.11.dev0\n    Uninstalling sympy-1.11.dev0:\n      Successfully uninstalled sympy-1.11.dev0\n  Running setup.py develop for sympy\nSuccessfully installed sympy\n============================= test process starts ==============================\nexecutable:         /opt/miniconda3/envs/testbed/bin/python  (3.9.20-final-0) [CPython]\narchitecture:       64-bit\ncache:              no\nground types:       python \nnumpy:              None\nrandom seed:        48459167\nhash randomization: on (PYTHONHASHSEED=477428889)\n\nsympy/core/tests/test_symbol.py[13] \ntest_Str ok\ntest_Symbol ok\ntest_Dummy ok\ntest_Dummy_force_dummy_index ok\ntest_lt_gt ok\ntest_no_len ok\ntest_ineq_unequal ok\ntest_Wild_properties ok\ntest_symbols ok\ntest_symbols_become_functions_issue_3539 ok\ntest_unicode ok\ntest_uniquely_named_symbol_and_Symbol ok\ntest_disambiguate ok                                                        [OK]\n\n\n================== tests finished: 13 passed, in 0.12 seconds ==================\n']
+
+── Step 7/30 · in 6176 · out 22 · 34.4s ────────────────────────────────
+    final_answer(get_patch())
+✓ final_answer submitted
+
+━━ ✓ Patch submitted in 7 step(s) · in 27500 · out 309 · 146.8s ━━━━━━━━
+  submitted patch
+    diff --git a/sympy/core/symbol.py b/sympy/core/symbol.py
+    index f4a555c13f..2aca8bab27 100644
+    --- a/sympy/core/symbol.py
+    +++ b/sympy/core/symbol.py
+    @@ -791,7 +791,7 @@ def literal(s):
+             return tuple(result)
+         else:
+             for name in names:
+    -            result.append(symbols(name, **args))
+    +            result.append(symbols(name, cls=cls, **args))
+     
+             return type(names)(result)
+     

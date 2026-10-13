@@ -5,6 +5,7 @@ from agent_core.llm.providers.generic import GenericProvider
 from agent_core.llm.providers.groq import GroqProvider
 from agent_core.llm.providers.mistral import MistralProvider
 from agent_core.llm.providers.openrouter import OpenRouterProvider
+from agent_core.llm.providers.google import GoogleProvider
 from agent_core.llm.retry import with_retry
 from agent_core.models import BaseProvider, LLMAnswer, Message
 
@@ -19,6 +20,7 @@ PROVIDER_HOSTS: dict[str, type[BaseProvider]] = {
     "api.groq.com": GroqProvider,
     "openrouter.ai": OpenRouterProvider,
     "api.mistral.ai": MistralProvider,
+    "generativelanguage.googleapis.com": GoogleProvider
 }
 
 
@@ -69,7 +71,7 @@ class LLMClient:
 
     def initialize_providers(self) -> None:
         """Initializes available providers based on present API keys."""
-        candidate_providers = [GroqProvider, OpenRouterProvider, MistralProvider]
+        candidate_providers = [GoogleProvider, GroqProvider, OpenRouterProvider, MistralProvider]
 
         for provider_cls in candidate_providers:
             try:

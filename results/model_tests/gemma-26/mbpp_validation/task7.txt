@@ -16,8 +16,8 @@ STEP 2: METRICS VALIDATION
 ============================================================
 Iterations: 1 / 10 OK
 Input tokens: 602 / 6000 OK
-Output tokens: 513 / 1500 OK
-Time: 54.8s / 120.0s OK
+Output tokens: 369 / 1500 OK
+Time: 8.8s / 120.0s OK
 Metrics: VALID
 
 ============================================================

@@ -1,0 +1,42 @@
+Traceback (most recent call last):
+  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/nahecre/Documents/M5/agentsmith/src/agent_swebench/__main__.py", line 13, in <module>
+    from mcp import StdioServerParameters, stdio_client
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/__init__.py", line 4, in <module>
+    from .server.session import ServerSession
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/__init__.py", line 1, in <module>
+    from .fastmcp import FastMCP
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/fastmcp/__init__.py", line 7, in <module>
+    from .server import Context, FastMCP
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/fastmcp/server.py", line 31, in <module>
+    from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/auth/middleware/auth_context.py", line 5, in <module>
+    from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/auth/middleware/bearer_auth.py", line 11, in <module>
+    from mcp.server.auth.provider import AccessToken, TokenVerifier
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/server/auth/provider.py", line 7, in <module>
+    from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/mcp/shared/auth.py", line 129, in <module>
+    class OAuthMetadata(BaseModel):
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_model_construction.py", line 256, in __new__
+    complete_model_class(
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_model_construction.py", line 667, in complete_model_class
+    schema = gen_schema.generate_schema(cls)
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 744, in generate_schema
+    schema = self._generate_schema_inner(obj)
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 1038, in _generate_schema_inner
+    return self._model_schema(obj)
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 868, in _model_schema
+    {k: self._generate_md_field_schema(k, v, decorators) for k, v in fields.items()},
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 868, in <dictcomp>
+    {k: self._generate_md_field_schema(k, v, decorators) for k, v in fields.items()},
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 1245, in _generate_md_field_schema
+    schema, metadata = self._common_field_schema(name, field_info, decorators)
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_generate_schema.py", line 1329, in _common_field_schema
+    update_core_metadata(
+  File "/home/nahecre/Documents/M5/agentsmith/.venv/lib/python3.10/site-packages/pydantic/_internal/_core_metadata.py", line 47, in update_core_metadata
+    def update_core_metadata(
+KeyboardInterrupt

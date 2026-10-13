@@ -21,9 +21,6 @@ class OpenRouterProvider(BaseProvider):
         self.MODEL_MAP: dict[str, str] = {
             "gemma-31": "google/gemma-4-31b-it:free",
             "gemma-26": "google/gemma-4-26b-a4b-it:free",
-            "qwen": "qwen/qwen-2.5-coder-32b-instruct:free",
-            "cohere": "cohere/command-r-7b-12-2024:free",
-            "nemotron": "nvidia/llama-3.1-nemotron-70b-instruct:free",
         }
 
         self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
@@ -93,7 +90,8 @@ class OpenRouterProvider(BaseProvider):
                 )
 
             except httpx.HTTPStatusError as e:
-                if e.response.status_code in (429, 500, 502, 503, 504):
+                print(f"GROQ {e.response.status_code}: {e.response.text[:500]}")
+                if e.response.status_code in (401, 429, 500, 502, 503, 504):
                     time.sleep(2 ** min(attempt, 4))
                     self.next_key()
                     continue

@@ -1,0 +1,35 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 431 · ministral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function that takes two lists and returns true if they have at least one common element.
+
+── Step 1/10 · in 541 · out 56 · 3.7s ──────────────────────────────────
+    code = r'''
+    def common_element(list1, list2):
+        return any(x in list2 for x in list1)
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+    stdout:
+    1/2 assertion(s) passed
+    assert common_element([1,2,3,4,5], [6,7,8,9])==None
+    Traceback (most recent call last):
+      File "/runner.py", line 38, in <module>
+        exec(t, ns)
+    AssertionError
+    Actual value: False
+
+── Step 2/10 · in 674 · out 62 · 2.1s ──────────────────────────────────
+    code = r'''
+    def common_element(list1, list2):
+        return None if not any(x in list2 for x in list1) else True
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 2 step(s) · in 1215 · out 118 · 6.2s ━━━━━━━━━━━━━━━━━━━━

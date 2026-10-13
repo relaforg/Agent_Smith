@@ -1,0 +1,123 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 167 · ministral-3 · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+── Step 1/10 · in 521 · out 33 · 0.4s ──────────────────────────────────
+    code = r'''
+    import math
+    def next_power_of_2(n):
+        return 2 ** math.ceil(math.log2(n))
+    '''
+    Code executed with no output.
+
+── Step 2/10 · in 562 · out 58 · 0.9s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> Union[int, float]:
+        if n <= 0:
+            return 0
+        return 2 ** math.ceil(math.log2(n))
+    '''
+    Code executed with no output.
+
+── Step 3/10 · in 628 · out 73 · 0.5s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 1
+        return 2 ** int(math.log2(n) + (1 if n & (n - 1) == 0 else 0))
+    '''
+    Code executed with no output.
+
+── Step 4/10 · in 709 · out 54 · 0.5s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 1
+        return 1 << (n.bit_length())
+    '''
+    Code executed with no output.
+
+── Step 5/10 · in 771 · out 63 · 0.5s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 0
+        return 2 ** (n.bit_length() if n > 0 else 0)
+    '''
+    Code executed with no output.
+
+── Step 6/10 · in 842 · out 56 · 0.5s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 1:
+            return 1
+        return 2 ** ((n-1).bit_length())
+    '''
+    Code executed with no output.
+
+── Step 7/10 · in 906 · out 63 · 0.6s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 0
+        return 2 ** (n.bit_length() if n > 0 else 0)
+    '''
+    Code executed with no output.
+
+── Step 8/10 · in 977 · out 63 · 0.7s ──────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 1
+        return 2 ** (n.bit_length() if n > 0 else 0)
+    '''
+    Code executed with no output.
+
+── Step 9/10 · in 1048 · out 63 · 0.6s ─────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 0:
+            return 0
+        return 2 ** (n.bit_length() if n > 0 else 0)
+    '''
+    Code executed with no output.
+
+── Step 10/10 · in 1119 · out 54 · 0.4s ────────────────────────────────
+    code = r'''
+    import math
+    from typing import Union
+    
+    def next_power_of_2(n: int) -> int:
+        if n <= 1:
+            return 1
+        return 2 ** (n.bit_length())
+    '''
+    Code executed with no output.
+
+━━ ✗ Not solved after 10 step(s) · in 8083 · out 580 · 5.7s ━━━━━━━━━━━━
+Exhausted iterations without submitting a passing solution via final_answer().
