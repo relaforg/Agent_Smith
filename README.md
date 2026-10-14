@@ -288,4 +288,4 @@ More details in the [Benchmark report](BENCHMARK_REPORT.md).
 
 - This README was drafted with Claude (Claude Code) from the actual source code and the result files, then reviewed and edited by us.
 - Compiling the dense result outputs for the BENCHMARK_REPORT.md
-- Explain several topic such as what is a MCP servers
+- Explain several topic such as what is a MCP server and how to properly make requests to an API
