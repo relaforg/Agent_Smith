@@ -89,14 +89,11 @@ flowchart TD
     server["MCP server<br/>(mcp_tools_mbpp.py / mcp_tools_swebench.py)"]
     docker["Docker container, network disabled<br/>(python:3.10 for MBPP,<br/>SWE-bench instance image with /testbed)"]
 
-    loop -- "messages" --> llm
-    llm -- "HTTP" --> providers
-    llm -- "LLMAnswer" --> loop
-    loop -- "execute(code)" --> parent
-    parent -- "execute<br/>(pipes, JSON lines)" --> exec
-    exec -- "tool_call" --> parent
-    parent -- "tool_result" --> exec
-    parent -- "tool call" --> mcpc
+    loop <-->|"messages / LLMAnswer"| llm
+    llm -->|"HTTP"| providers
+    loop -->|"execute(code)"| parent
+    parent <-->|"pipes, JSON lines:<br/>execute, tool_call, tool_result"| exec
+    parent -->|"tool calls"| mcpc
     mcpc -- "stdio" --> server
     server -- "docker exec" --> docker
 ```
