@@ -292,3 +292,26 @@ return ```python final_answer(function_code)``` to finish the task
 | gpt-oss-120b | **10/10 → 0/10** | 1.0 → 3.5 | 286 → 1,571 |
 
 Without the full prompt's template (code in a string, then `run_tests`, then `final_answer` in the same block), codestral passes the function object to `final_answer` instead of its source code in 8 runs out of 10. The recorded solution becomes `<function ... at 0x...>`, which does not compile. Answers also get much longer: gpt-oss-120b exceeds the 1,500 output-token limit in 6 runs. The detailed prompt is therefore essential.
+
+## 7. Conclusions
+ 
+**Selected model: codestral (Mistral).**
+- It is among the top scorers on SWE-bench (4/7) and on MBPP (10/10, at 1.1 s per task).
+- Its provider, Mistral, did not interrupt a single run (100% availability, 0.6 s median latency). ministral-3b, with the same score on the same provider, needs almost twice as many iterations and only scores 3/10 on MBPP.
+- In an evaluation where no run is retried, provider reliability matters as much as the score.
+
+**Second choice: qwen-3.8 (Groq).**
+- At an equal score (4/7), it is the most efficient model: 7 iterations and 26k input tokens per task, and the right file opened at step 1 or 2.
+- All 3 of its failures come from Groq's limits (413 and 400), not from its reasoning: it solved all 4 tasks it was able to finish.
+- With more quota, it would be the best candidate.
+
+**Discarded models:**
+
+| Model | Reason |
+|---|---|
+| ministral-3b | 4/7 on SWE-bench, but it needs 22 iterations per task, and it only scores 3/10 on MBPP (input-token limit exceeded). |
+| ministral-14b, ministral-8b | 0/7: they call tools without `print()` (207 and 199 silent steps out of 210) and never see the results. |
+| gemma-26 | 1/7, 5,464 output tokens per task; a third of its answers contain several code blocks with made-up results. |
+| gpt-oss-120b | Excellent on MBPP (10/10), but 0/7 on SWE-bench because Groq rejects its calls with `tool_use_failed`. |
+| gemini-flash, gemma-31 | Free quotas exhausted or heavily throttled: almost no request goes through on SWE-bench. |
+
