@@ -3,7 +3,9 @@ import asyncio
 import contextlib
 import json
 import os
+import signal
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -23,7 +25,6 @@ from agent_swebench.display import (print_debug, print_debug_step,
 
 TEMPERATURE = 0.2
 MAX_TOKENS_PER_CALL = 2048
-# Give up once the model has resent the same code this many times in a row
 MAX_REPEATS = 3
 
 SYSTEM_PROMPT = """You are an autonomous software engineer fixing a bug in a repository.
@@ -163,6 +164,8 @@ async def run_swebench_agent(
     )
 
     loop = asyncio.get_running_loop()
+    stop = threading.Event()
+    loop.add_signal_handler(signal.SIGINT, stop.set)
 
     async with contextlib.AsyncExitStack() as stack:
         # The server logs every request on stderr: only worth showing in debug
@@ -209,6 +212,9 @@ async def run_swebench_agent(
             with Sandbox(config, tools) as sb:
 
                 for i in range(1, max_iterations + 1):
+                    if stop.is_set():
+                        error_message = "Interrupted by user (Ctrl-C)."
+                        break
                     step_start_time = time.perf_counter()
 
                     try:
@@ -292,9 +298,11 @@ async def run_swebench_agent(
 
                     messages.append(
                         Message(role="assistant", content=llm_output))
-                    messages.append(Message(role="user", content=user_feedback))
+                    messages.append(
+                        Message(role="user", content=user_feedback))
 
-                    time.sleep(5)
+                    # Like sleep(5), but returns as soon as Ctrl-C is pressed
+                    stop.wait(5)
 
             total_time_seconds = time.perf_counter() - start_time
             total_input_tokens = sum(s.input_tokens for s in steps)
@@ -322,7 +330,8 @@ async def run_swebench_agent(
                 timestamp=datetime.now().isoformat(),
             )
 
-            _write_output(output_file, solution_output.model_dump_json(indent=2))
+            _write_output(
+                output_file, solution_output.model_dump_json(indent=2))
 
         await asyncio.to_thread(execution_loop)
 
@@ -330,11 +339,16 @@ async def run_swebench_agent(
 if __name__ == "__main__":
     load_dotenv()
     parser = argparse.ArgumentParser(description="SWE-bench Task Solver Agent")
-    parser.add_argument("--task-file", "--task-path", required=True, help="Path to swebench task.json")
-    parser.add_argument("--output", "--solution-path", required=True, help="Path to output solution.json")
-    parser.add_argument("--model-name", default="codestral", help="Model identifier to use")
-    parser.add_argument("--provider-url", default=None, help="Base API URL for LLM provider")
-    parser.add_argument("--api-key", default=None, help="API key for the provider URL (falls back to LLM_API_KEY)")
+    parser.add_argument("--task-file", "--task-path",
+                        required=True, help="Path to swebench task.json")
+    parser.add_argument("--output", "--solution-path",
+                        required=True, help="Path to output solution.json")
+    parser.add_argument("--model-name", default="codestral",
+                        help="Model identifier to use")
+    parser.add_argument("--provider-url", default=None,
+                        help="Base API URL for LLM provider")
+    parser.add_argument("--api-key", default=None,
+                        help="API key for the provider URL (falls back to LLM_API_KEY)")
     parser.add_argument("--debug", action="store_true",
                         help="Show prompts, raw replies, sandbox results, "
                              "MCP server and LLM client logs")

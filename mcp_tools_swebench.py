@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 LABEL = "swebench-mcp"
-LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getgid())}
+LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getpid())}
 
 DOCKER_IMAGE = os.environ.get("DOCKER_IMAGE", "python:3.10")
 TESTBED_PATH = os.environ.get("TESTBED_PATH")
@@ -164,6 +164,8 @@ backend = LocalBackend(TESTBED_PATH) if TESTBED_PATH \
 
 atexit.register(backend.close)
 signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
 
 
 @mcp.tool()
