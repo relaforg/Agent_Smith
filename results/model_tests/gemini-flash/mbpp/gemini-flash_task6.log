@@ -1,0 +1,19 @@
+━━ MBPP task 431 · gemini-flash · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function that takes two lists and returns true if they have at least one common element.
+
+── Step 1/10 · in 578 · out 89 · 3.9s ──────────────────────────────────
+    code = r'''
+    def common_element(list1, list2):
+        s1 = set(list1)
+        for x in list2:
+            if x in s1:
+                return True
+        return None
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 578 · out 89 · 222.7s ━━━━━━━━━━━━━━━━━━━━

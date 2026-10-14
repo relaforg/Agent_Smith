@@ -1,0 +1,17 @@
+━━ MBPP task 233 · gemini-flash · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find the lateral surface area of a cylinder.
+
+── Step 1/10 · in 622 · out 72 · 1.8s ──────────────────────────────────
+    code = r'''
+    import math
+    
+    def lateralsuface_cylinder(r, h):
+        return 2 * math.pi * r * h
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 622 · out 72 · 330.3s ━━━━━━━━━━━━━━━━━━━━

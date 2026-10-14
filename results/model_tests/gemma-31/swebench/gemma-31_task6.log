@@ -1,30 +1,42 @@
-Cannot read termcap database;
-using dumb terminal settings.
-unhandled exception during asyncio.run() shutdown
-task: <Task finished name='Task-1' coro=<run_swebench_agent() done, defined at /home/nahecre/Documents/M5/agentsmith/src/agent_swebench/__main__.py:139> exception=RuntimeError("generator didn't yield")>
 Traceback (most recent call last):
-  File "/home/nahecre/Documents/M5/agentsmith/src/agent_swebench/__main__.py", line 171, in run_swebench_agent
-    client = await stack.enter_async_context(
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/contextlib.py", line 619, in enter_async_context
-    result = await _cm_type.__aenter__(cm)
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/contextlib.py", line 201, in __aenter__
-    raise RuntimeError("generator didn't yield") from None
-RuntimeError: generator didn't yield
-Traceback (most recent call last):
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
     return _run_code(code, main_globals, None,
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/runpy.py", line 86, in _run_code
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
     exec(code, run_globals)
-  File "/home/nahecre/Documents/M5/agentsmith/src/agent_swebench/__main__.py", line 343, in <module>
-    asyncio.run(
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/asyncio/runners.py", line 44, in run
-    return loop.run_until_complete(main)
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/asyncio/base_events.py", line 636, in run_until_complete
-    self.run_forever()
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/asyncio/base_events.py", line 603, in run_forever
-    self._run_once()
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/asyncio/base_events.py", line 1871, in _run_once
-    event_list = self._selector.select(timeout)
-  File "/home/nahecre/.local/share/uv/python/cpython-3.10-linux-x86_64-gnu/lib/python3.10/selectors.py", line 469, in select
-    fd_event_list = self._selector.poll(timeout, max_ev)
+  File "/home/relaforg/Documents/Agent_Smith/src/agent_swebench/__main__.py", line 13, in <module>
+    from mcp import StdioServerParameters, stdio_client
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/__init__.py", line 4, in <module>
+    from .server.session import ServerSession
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/server/__init__.py", line 1, in <module>
+    from .fastmcp import FastMCP
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/server/fastmcp/__init__.py", line 7, in <module>
+    from .server import Context, FastMCP
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/server/fastmcp/server.py", line 23, in <module>
+    from starlette.applications import Starlette
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/starlette/applications.py", line 8, in <module>
+    from starlette.middleware.body_limit import RequestBodyLimitMiddleware
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/starlette/middleware/body_limit.py", line 7, in <module>
+    from starlette.responses import PlainTextResponse
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/starlette/responses.py", line 4, in <module>
+    import http.cookies
+  File "/usr/lib/python3.10/http/cookies.py", line 455, in <module>
+    _CookiePattern = re.compile(r"""
+  File "/usr/lib/python3.10/re.py", line 251, in compile
+    return _compile(pattern, flags)
+  File "/usr/lib/python3.10/re.py", line 303, in _compile
+    p = sre_compile.compile(pattern, flags)
+  File "/usr/lib/python3.10/sre_compile.py", line 788, in compile
+    p = sre_parse.parse(p, flags)
+  File "/usr/lib/python3.10/sre_parse.py", line 955, in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+  File "/usr/lib/python3.10/sre_parse.py", line 444, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+  File "/usr/lib/python3.10/sre_parse.py", line 841, in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+  File "/usr/lib/python3.10/sre_parse.py", line 444, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+  File "/usr/lib/python3.10/sre_parse.py", line 701, in _parse
+    name = source.getuntil(">", "group name")
+  File "/usr/lib/python3.10/sre_parse.py", line 272, in getuntil
+    self.__next()
 KeyboardInterrupt
