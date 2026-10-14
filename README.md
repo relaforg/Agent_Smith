@@ -72,29 +72,33 @@ The SWE-bench server is configured through environment variables: `DOCKER_IMAGE`
 
 ## System architecture
 
-```
-┌──────────────────────── host process ────────────────────────┐
-│                                                              │
-│   agent loop  (agent_mbpp / agent_swebench)                  │
-│     │      ▲                                                 │
-│     │      │ LLMAnswer                                       │
-│     ▼      │                                                 │
-│   LLMClient ──► Mistral / Groq / OpenRouter / Google / any   │
-│                 OpenAI-compatible URL                        │
-│     │                                                        │
-│     │ execute(code)        tool_call  ┌──────────────────┐   │
-│     ▼                     ◄────────── │                  │   │
-│   Sandbox (parent side)               │ forked child:    │   │
-│     │  pipes, JSON lines  ──────────► │ restricted exec  │   │
-│     │                     tool_result └──────────────────┘   │
-│     │ MCP client (stdio)                                     │
-└─────┼────────────────────────────────────────────────────────┘
-      ▼
-  MCP server (mcp_tools_mbpp.py / mcp_tools_swebench.py)
-      │  docker exec
-      ▼
-  Docker container, network disabled
-  (python:3.10 for MBPP, the SWE-bench instance image with /testbed)
+```mermaid
+flowchart TD
+    subgraph host["Host process"]
+        loop["Agent loop<br/>(agent_mbpp / agent_swebench)"]
+        llm["LLMClient"]
+        parent["Sandbox<br/>(parent side)"]
+        mcpc["MCP client"]
+    end
+
+    subgraph child["Forked child process"]
+        exec["Restricted exec<br/>of the LLM's code"]
+    end
+
+    providers["Mistral / Groq / OpenRouter / Google<br/>or any OpenAI-compatible URL"]
+    server["MCP server<br/>(mcp_tools_mbpp.py / mcp_tools_swebench.py)"]
+    docker["Docker container, network disabled<br/>(python:3.10 for MBPP,<br/>SWE-bench instance image with /testbed)"]
+
+    loop -- "messages" --> llm
+    llm -- "HTTP" --> providers
+    llm -- "LLMAnswer" --> loop
+    loop -- "execute(code)" --> parent
+    parent -- "execute<br/>(pipes, JSON lines)" --> exec
+    exec -- "tool_call" --> parent
+    parent -- "tool_result" --> exec
+    parent -- "tool call" --> mcpc
+    mcpc -- "stdio" --> server
+    server -- "docker exec" --> docker
 ```
 
 The code is split like this:
