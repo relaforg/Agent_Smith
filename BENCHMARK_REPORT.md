@@ -185,8 +185,8 @@ Three models solve 4 tasks out of 7. What separates them is cost: qwen-3.8 gets 
 | qwen-3.8 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **9/10** | 1.9 | 2,151 | 171 | 2.7 s |
 | ministral-3b | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | **3/10** | 7.7 | 6,197 | 419 | 4.0 s |
 | ministral-8b | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | **0/10** | 10.0 | 7,886 | 491 | 9.3 s |
-| gemini-flash | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | **n.v.** | 1.0 | 581 | 100 | 126.3 s |
-| gemma-31 | ⚪ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ⚪ | ⛔ | **0/10** | 0.2 | 116 | 14 | 374.7 s |
+| gemini-flash | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | **n.v.** | 1.0 | 581 | 100 | 126.3 s |
+| gemma-31 | ✅ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ⛔ | ❌ | ⛔ | **0/10** | 0.2 | 116 | 14 | 374.7 s |
 
 - MBPP does not separate the good models: 4 of them score 10/10 in about one iteration. The difference is speed and cost: codestral answers in 1.1 s with 80 output tokens.
 - ministral-3b and ministral-8b exceed the 6,000 input-token limit: they keep iterating without submitting.
