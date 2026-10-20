@@ -324,4 +324,5 @@ if __name__ == "__main__":
     # print(find_references("enclosing_scope", "/refs.py", 48))
     # print(run_tests())
     # print(get_patch())
+    # mcp.run(transport="streamable-http")
     mcp.run()
