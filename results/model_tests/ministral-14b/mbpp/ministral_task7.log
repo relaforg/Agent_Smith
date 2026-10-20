@@ -1,0 +1,80 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · ministral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 574 · out 86 · 2.1s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple(sum(zip(*g), ())) for g in groups.values()]
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+    stdout:
+    0/2 assertion(s) passed
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    Traceback (most recent call last):
+      File "/runner.py", line 38, in <module>
+        exec(t, ns)
+    AssertionError
+    Actual value: [('a', 'a', 'b', 'c'), ('d', 'e')]
+    
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    Traceback (most recent call last):
+      File "/runner.py", line 38, in <module>
+        exec(t, ns)
+    AssertionError
+    Actual value: [('f', 'f', 'g', 'g'), ('h', 'i')]
+
+── Step 2/10 · in 873 · out 95 · 2.2s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t[1:])
+        return [tuple([t[0]] + sum(g, ())) for t, g in groups.items()]
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+    stdout:
+    0/2 assertion(s) passed
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    Traceback (most recent call last):
+      File "/runner.py", line 38, in <module>
+        exec(t, ns)
+    TypeError: can only concatenate list (not "tuple") to list
+    
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    Traceback (most recent call last):
+      File "/runner.py", line 38, in <module>
+        exec(t, ns)
+    TypeError: can only concatenate list (not "tuple") to list
+
+── Step 3/10 · in 1158 · out 97 · 7.6s ─────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t[1:])
+        return [tuple([t[0]] + list(sum(g, ()))) for t, g in groups.items()]
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 3 step(s) · in 2605 · out 278 · 12.3s ━━━━━━━━━━━━━━━━━━━

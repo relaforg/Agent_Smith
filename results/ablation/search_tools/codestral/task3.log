@@ -1,0 +1,146 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench django__django-13741 · django/django · codestral ━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Set disabled prop on ReadOnlyPasswordHashField
+Description
+	
+Currently the django.contrib.auth.forms.UserChangeForm defines a clean_password method that returns the initial password value to prevent (accidental) changes to the password value. It is also documented that custom forms for the User model need to define this method: ​https://docs.djangoproject.com/en/3.1/topics/auth/customizing/#a-full-example
+A while ago the forms.Field base class gained the ​disabled argument to:
+[disable] a form field using the disabled HTML attribute so that it won’t be editable by users. Even if a user tampers with the field’s value submitted to the server, it will be ignored in favor of the value from the form’s initial data.
+It seems to me that this property could be set to True be default on the ReadOnlyPasswordHashField used to display the password hash. This way the clean_password is no longer necessary and the potential pitfall when using the ReadOnlyPasswordHashField without implementing clean_password is removed.
+
+── Step 1/30 · in 1260 · out 27 · 1.6s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 1, 100))
+    stdout:
+    1: import unicodedata
+    2: 
+    3: from django import forms
+    4: from django.contrib.auth import (
+    5:     authenticate, get_user_model, password_validation,
+    6: )
+    7: from django.contrib.auth.hashers import (
+    8:     UNUSABLE_PASSWORD_PREFIX, identify_hasher,
+    9: )
+    10: from django.contrib.auth.models import User
+    11: from django.contrib.auth.tokens import default_token_generator
+    12: from django.contrib.sites.shortcuts import get_current_site
+    13: from django.core.exceptions import ValidationError
+    14: from django.core.mail import EmailMultiAlternatives
+    15: from django.template import loader
+    16: from django.utils.encoding import force_bytes
+    17: from django.utils.http import urlsafe_base64_encode
+    18: from django.utils.text import capfirst
+    19: from django.utils.translation import gettext, gettext_lazy as _
+    ... (61 lines hidden) ...
+    81: 
+    82: class UserCreationForm(forms.ModelForm):
+    83:     """
+    84:     A form that creates a user, with no privileges, from the given username and
+    85:     password.
+    86:     """
+    87:     error_messages = {
+    88:         'password_mismatch': _('The two password fields didn’t match.'),
+    89:     }
+    90:     password1 = forms.CharField(
+    91:         label=_("Password"),
+    92:         strip=False,
+    93:         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    94:         help_text=password_validation.password_validators_help_text_html(),
+    95:     )
+    96:     password2 = forms.CharField(
+    97:         label=_("Password confirmation"),
+    98:         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    99:         strip=False,
+    100:         help_text=_("Enter the same password as before, for verification."),
+
+── Step 2/30 · in 2406 · out 29 · 0.5s ─────────────────────────────────
+    print(read_file("/testbed/django/contrib/auth/forms.py", 101, 200))
+    stdout:
+    101:     )
+    102: 
+    103:     class Meta:
+    104:         model = User
+    105:         fields = ("username",)
+    106:         field_classes = {'username': UsernameField}
+    107: 
+    108:     def __init__(self, *args, **kwargs):
+    109:         super().__init__(*args, **kwargs)
+    110:         if self._meta.model.USERNAME_FIELD in self.fields:
+    111:             self.fields[self._meta.model.USERNAME_FIELD].widget.attrs['autofocus'] = True
+    112: 
+    113:     def clean_password2(self):
+    114:         password1 = self.cleaned_data.get("password1")
+    115:         password2 = self.cleaned_data.get("password2")
+    116:         if password1 and password2 and password1 != password2:
+    117:             raise ValidationError(
+    118:                 self.error_messages['password_mismatch'],
+    119:                 code='password_mismatch',
+    ... (61 lines hidden) ...
+    181:         strip=False,
+    182:         widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}),
+    183:     )
+    184: 
+    185:     error_messages = {
+    186:         'invalid_login': _(
+    187:             "Please enter a correct %(username)s and password. Note that both "
+    188:             "fields may be case-sensitive."
+    189:         ),
+    190:         'inactive': _("This account is inactive."),
+    191:     }
+    192: 
+    193:     def __init__(self, request=None, *args, **kwargs):
+    194:         """
+    195:         The 'request' parameter is set for custom auth use by subclasses.
+    196:         The form data comes in via the standard 'data' kwarg.
+    197:         """
+    198:         self.request = request
+    199:         self.user_cache = None
+    200:         super().__init__(*args, **kwargs)
+
+── Step 3/30 · in 3656 · out 41 · 1.1s ─────────────────────────────────
+    edit_file("/testbed/django/contrib/auth/forms.py", "password = ReadOnlyPasswordHashField(", "password = ReadOnlyPasswordHashField(disabled=True, ")
+    Code executed with no output.
+
+── Step 4/30 · in 3739 · out 10 · 0.8s ─────────────────────────────────
+    print(get_patch())
+    stdout:
+    diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+    index b9eb33329f..70f3d44ee1 100644
+    --- a/django/contrib/auth/forms.py
+    +++ b/django/contrib/auth/forms.py
+    @@ -140,7 +140,7 @@ class UserCreationForm(forms.ModelForm):
+     
+     
+     class UserChangeForm(forms.ModelForm):
+    -    password = ReadOnlyPasswordHashField(
+    +    password = ReadOnlyPasswordHashField(disabled=True, 
+             label=_("Password"),
+             help_text=_(
+                 'Raw passwords are not stored, so there is no way to see this '
+
+── Step 5/30 · in 3947 · out 10 · 2.9s ─────────────────────────────────
+    print(run_tests())
+    stdout:
+    [0, 'Generating locales (this might take a while)...\n  en_US.UTF-8... done\nGeneration complete.\nOn branch main\nChanges not staged for commit:\n  (use "git add <file>..." to update what will be committed)\n  (use "git restore <file>..." to discard changes in working directory)\n\tmodified:   django/contrib/auth/forms.py\n\nno changes added to commit (use "git add" and/or "git commit -a")\ncommit dcd0452a8fc9cbaf861d79557421f935acc43b8f\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 01:18:43 2026 +0000\n\n    SWE-bench\ndiff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py\nindex b9eb33329f..70f3d44ee1 100644\n--- a/django/contrib/auth/forms.py\n+++ b/django/contrib/auth/forms.py\n@@ -140,7 +140,7 @@ class UserCreationForm(forms.ModelForm):\n \n \n class UserChangeForm(forms.ModelForm):\n-    password = ReadOnlyPasswordHashField(\n+    password = ReadOnlyPasswordHashField(disabled=True, \n         label=_("Password"),\n         help_text=_(\n             \'Raw passwords are not stored, so there is no way to see this \'\nObtaining file:///testbed\nRequirement already satisfied: asgiref>=3.2.10 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (3.4.1)\nRequirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (2024.2)\nRequirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (0.4.4)\nRequirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2.10->Django==3.2) (4.1.1)\nInstalling collected packages: Django\n  Attempting uninstall: Django\n    Found existing installation: Django 3.2\n    Uninstalling Django-3.2:\n      Successfully uninstalled Django-3.2\n  Running setup.py develop for Django\nSuccessfully installed Django-3.2\nTesting against Django installed in \'/testbed/django\'\nImporting application auth_tests\nSkipping setup of unused database(s): other.\nOperations to perform:\n  Synchronize unmigrated apps: auth, auth_tests, contenttypes, messages, sessions, staticfiles\n  Apply all migrations: admin, sites\nSynchronizing apps without migrations:\n  Creating tables...\n    Creating table django_content_type\n    Creating table auth_permission\n    Creating table auth_group\n    Creating table auth_user\n    Creating table django_session\n    Creating table auth_tests_customuser\n    Creating table auth_tests_customuserwithoutisactivefield\n    Creating table auth_tests_extensionuser\n    Creating table auth_tests_custompermissionsuser\n    Creating table auth_tests_customusernonuniqueusername\n    Creating table auth_tests_isactivetestuser1\n    Creating table auth_tests_minimaluser\n    Creating table auth_tests_nopassworduser\n    Creating table auth_tests_concrete\n    Creating table auth_tests_uuiduser\n    Creating table auth_tests_customemailfield\n    Creating table auth_tests_email\n    Creating table auth_tests_customuserwithfk\n    Creating table auth_tests_integerusernameuser\n    Creating table auth_tests_userwithdisabledlastloginfield\n    Creating table auth_tests_organization\n    Creating table auth_tests_customuserwithm2m\n    Creating table auth_tests_customuserwithm2mthrough\n    Creating table auth_tests_membership\n    Running deferred SQL...\nRunning migrations:\n  Applying admin.0001_initial... OK\n  Applying admin.0002_logentry_remove_auto_add... OK\n  Applying admin.0003_logentry_add_action_flag_choices... OK\n  Applying sites.0001_initial... OK\n  Applying sites.0002_alter_domain_unique... OK\nSystem check identified no issues (0 silenced).\n']
+
+── Step 6/30 · in 5016 · out 11 · 0.5s ─────────────────────────────────
+    final_answer(get_patch())
+✓ final_answer submitted
+
+━━ ✓ Patch submitted in 6 step(s) · in 20024 · out 128 · 32.5s ━━━━━━━━━
+  submitted patch
+    diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+    index b9eb33329f..70f3d44ee1 100644
+    --- a/django/contrib/auth/forms.py
+    +++ b/django/contrib/auth/forms.py
+    @@ -140,7 +140,7 @@ class UserCreationForm(forms.ModelForm):
+     
+     
+     class UserChangeForm(forms.ModelForm):
+    -    password = ReadOnlyPasswordHashField(
+    +    password = ReadOnlyPasswordHashField(disabled=True, 
+             label=_("Password"),
+             help_text=_(
+                 'Raw passwords are not stored, so there is no way to see this '

@@ -1,0 +1,151 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ SWE-bench sympy__sympy-23534 · sympy/sympy · gpt-oss-120b ━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+Using symbols to create functions doesn't work if there is an extra layer of parentheses
+Sympy version == 1.10.1
+
+Using `symbols` to create symbol-like objects like instances of `Function` as shown in the [documentation](https://docs.sympy.org/latest/modules/core.html?highlight=symbols#symbols) creates objects of class `Symbol` instead of `Function` if there is an extra layer of parentheses.
+
+The extra layer of parentheses are necessary to deconstruct the output as separate tuples.
+
+Running the code:
+```
+q, u = smp.symbols(('q:2', 'u:2'), cls=smp.Function)
+print(type(q[0]))
+```
+#### Expected result:
+<class 'sympy.core.function.UndefinedFunction'>
+
+#### Actual result: 
+<class 'sympy.core.symbol.Symbol'>
+
+── Step 1/30 · in 1072 · out 428 · 2.7s ────────────────────────────────
+    print(run_tests())
+    stdout:
+    [0, 'On branch master\nnothing to commit, working tree clean\ncommit aadc03208c308280233d66a3bfa623c367320ae6\nAuthor: SWE-bench <setup@swebench.com>\nDate:   Thu Aug 13 04:03:11 2026 +0000\n\n    SWE-bench\nObtaining file:///testbed\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status \'done\'\nRequirement already satisfied: mpmath>=0.19 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from sympy==1.11.dev0) (1.3.0)\nInstalling collected packages: sympy\n  Attempting uninstall: sympy\n    Found existing installation: sympy 1.11.dev0\n    Uninstalling sympy-1.11.dev0:\n      Successfully uninstalled sympy-1.11.dev0\n  Running setup.py develop for sympy\nSuccessfully installed sympy\n============================= test process starts ==============================\nexecutable:         /opt/miniconda3/envs/testbed/bin/python  (3.9.20-final-0) [CPython]\narchitecture:       64-bit\ncache:              no\nground types:       python \nnumpy:              None\nrandom seed:        45797616\nhash randomization: on (PYTHONHASHSEED=2643523945)\n\nsympy/core/tests/test_symbol.py[13] \ntest_Str ok\ntest_Symbol ok\ntest_Dummy ok\ntest_Dummy_force_dummy_index ok\ntest_lt_gt ok\ntest_no_len ok\ntest_ineq_unequal ok\ntest_Wild_properties ok\ntest_symbols F\ntest_symbols_become_functions_issue_3539 ok\ntest_unicode ok\ntest_uniquely_named_symbol_and_Symbol ok\ntest_disambiguate ok                                                      [FAIL]\n\n\n________________________________________________________________________________\n_________________ sympy/core/tests/test_symbol.py:test_symbols _________________\nTraceback (most recent call last):\n  File "/testbed/sympy/core/tests/test_symbol.py", line 298, in test_symbols\n    assert type(symbols((\'q:2\', \'u:2\'), cls=Function)[0][0]) == UndefinedFunction  # issue 23532\nAssertionError\n\n============= tests finished: 12 passed, 1 failed, in 0.12 seconds =============\nDO *NOT* COMMIT!\n']
+
+── Step 2/30 · in 1675 · out 458 · 1.4s ────────────────────────────────
+    print(search_code("def symbols", "*.py"))
+    stdout:
+    /testbed/sympy/diffgeom/diffgeom.py:371     def symbols(self):
+    /testbed/sympy/assumptions/cnf.py:421     def symbols(self):
+    /testbed/sympy/plotting/pygletplot/plot_mode.py:245         def symbols_list(symbol_str):
+    /testbed/sympy/core/symbol.py:586 def symbols(names, *, cls=Symbol, **args) -> Any:
+    /testbed/sympy/stats/frv.py:70     def symbols(self):
+    /testbed/sympy/stats/frv.py:109     def symbols(self):
+    /testbed/sympy/stats/rv.py:79     def symbols(self):
+    /testbed/sympy/stats/rv.py:112     def symbols(self):
+    /testbed/sympy/stats/rv.py:136     def symbols(self):
+    /testbed/sympy/stats/rv.py:156     def symbols(self):
+    /testbed/sympy/stats/rv.py:211     def symbols(self):
+    /testbed/sympy/stats/rv.py:428     def symbols(self):
+    /testbed/sympy/stats/rv.py:576     def symbols(self):
+    /testbed/sympy/stats/joint_rv.py:379     def symbols(self):
+
+── Step 3/30 · in 2005 · out 695 · 1.9s ────────────────────────────────
+    print(read_file("/testbed/sympy/core/tests/test_symbol.py", 260, 340))
+    stdout:
+    260:     assert symbols('x0:0') == ()
+    261:     assert symbols('x0:1') == (x0,)
+    262:     assert symbols('x0:2') == (x0, x1)
+    263:     assert symbols('x0:3') == (x0, x1, x2)
+    264: 
+    265:     assert symbols('x:0') == ()
+    266:     assert symbols('x:1') == (x0,)
+    267:     assert symbols('x:2') == (x0, x1)
+    268:     assert symbols('x:3') == (x0, x1, x2)
+    269: 
+    270:     assert symbols('x1:1') == ()
+    271:     assert symbols('x1:2') == (x1,)
+    272:     assert symbols('x1:3') == (x1, x2)
+    273: 
+    274:     assert symbols('x1:3,x,y,z') == (x1, x2, x, y, z)
+    275: 
+    276:     assert symbols('x:3,y:2') == (x0, x1, x2, y0, y1)
+    277:     assert symbols(('x:3', 'y:2')) == ((x0, x1, x2), (y0, y1))
+    278: 
+    ... (42 lines hidden) ...
+    321: 
+    322:     raises(ValueError, lambda: symbols(':'))
+    323:     raises(ValueError, lambda: symbols('a:'))
+    324:     raises(ValueError, lambda: symbols('::'))
+    325:     raises(ValueError, lambda: symbols('a::'))
+    326:     raises(ValueError, lambda: symbols(':a:'))
+    327:     raises(ValueError, lambda: symbols('::a'))
+    328: 
+    329: 
+    330: def test_symbols_become_functions_issue_3539():
+    331:     from sympy.abc import alpha, phi, beta, t
+    332:     raises(TypeError, lambda: beta(2))
+    333:     raises(TypeError, lambda: beta(2.5))
+    334:     raises(TypeError, lambda: phi(2.5))
+    335:     raises(TypeError, lambda: alpha(2.5))
+    336:     raises(TypeError, lambda: phi(t))
+    337: 
+    338: 
+    339: def test_unicode():
+    340:     xu = Symbol('x')
+
+── Step 4/30 · in 3330 · out 2048 · 4.7s ───────────────────────────────
+    (empty reply)
+    Code executed with no output.
+
+── Step 5/30 · in 3376 · out 701 · 2.0s ────────────────────────────────
+    print(read_file("/testbed/sympy/core/tests/test_symbol.py", 330, 380))
+    stdout:
+    330: def test_symbols_become_functions_issue_3539():
+    331:     from sympy.abc import alpha, phi, beta, t
+    332:     raises(TypeError, lambda: beta(2))
+    333:     raises(TypeError, lambda: beta(2.5))
+    334:     raises(TypeError, lambda: phi(2.5))
+    335:     raises(TypeError, lambda: alpha(2.5))
+    336:     raises(TypeError, lambda: phi(t))
+    337: 
+    338: 
+    339: def test_unicode():
+    340:     xu = Symbol('x')
+    341:     x = Symbol('x')
+    342:     assert x == xu
+    343: 
+    344:     raises(TypeError, lambda: Symbol(1))
+    345: 
+    346: 
+    347: def test_uniquely_named_symbol_and_Symbol():
+    348:     F = uniquely_named_symbol
+    ... (12 lines hidden) ...
+    361:     assert F(('x', r)).is_real
+    362:     assert F(('x', r), real=False).is_real
+    363:     assert F('x1', Symbol('x1'),
+    364:         compare=lambda i: str(i).rstrip('1')).name == 'x0'
+    365:     assert F('x1', Symbol('x1'),
+    366:         modify=lambda i: i + '_').name == 'x1_'
+    367:     assert _symbol(x, _x) == x
+    368: 
+    369: 
+    370: def test_disambiguate():
+    371:     x, y, y_1, _x, x_1, x_2 = symbols('x y y_1 _x x_1 x_2')
+    372:     t1 = Dummy('y'), _x, Dummy('x'), Dummy('x')
+    373:     t2 = Dummy('x'), Dummy('x')
+    374:     t3 = Dummy('x'), Dummy('y')
+    375:     t4 = x, Dummy('x')
+    376:     t5 = Symbol('x', integer=True), x, Symbol('x_1')
+    377: 
+    378:     assert disambiguate(*t1) == (y, x_2, x, x_1)
+    379:     assert disambiguate(*t2) == (x, x_1)
+    380:     assert disambiguate(*t3) == (x, y)
+
+Provider 'groq' failed for model 'gpt-oss-120b': All API keys exhausted. Checking for alternative provider hosting identical model...
+── Step 6/30 · in 4096 · out 2048 · 4.8s ───────────────────────────────
+    (empty reply)
+    Code executed with no output.
+
+── Step 7/30 · in 4142 · out 2048 · 4.7s ───────────────────────────────
+    (empty reply)
+    Code executed with no output.
+! You repeated the exact same code as last turn and got the exact same result. Repeating it again will not help. Stop trying to run a standalone script: understand the actual bug before writing any more repro scripts.
+↻ Same code as the previous step
+
+━━ ✗ No patch submitted after 7 step(s) · in 19696 · out 8426 · 57.6s ━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-oss-120b' failed. Errors: {'groq': RuntimeError('All API keys exhausted')}

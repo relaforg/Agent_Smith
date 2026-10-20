@@ -1,0 +1,32 @@
+
+============================================================
+VALIDATING SOLUTION
+============================================================
+Task ID: django__django-13741
+Benchmark: swebench
+Success claimed: False
+
+============================================================
+STEP 1: CORRECTNESS VALIDATION
+============================================================
+Solution doesn't look like a git patch
+Correctness: FAILED
+
+============================================================
+STEP 2: METRICS VALIDATION
+============================================================
+Iterations: 22 / 30 OK
+Input tokens: 193721 / 300000 OK
+Output tokens: 14468 / 10000 EXCEEDED
+Time: 887.4s / 900.0s OK
+
+Errors:
+  - Output tokens 14468 exceeds limit 10000
+Metrics: INVALID
+
+============================================================
+FINAL RESULT
+============================================================
+Correctness: FAILED
+Metrics: INVALID
+Overall: FAILED

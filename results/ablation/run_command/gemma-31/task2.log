@@ -1,0 +1,42 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 401: {"error":{"message":"Missing Authentication header","code":401}}
+Provider 'openrouter' failed for model 'gemma-31': Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Checking for alternative provider hosting identical model...
+━━ SWE-bench pydata__xarray-4629 · pydata/xarray · gemma-31 ━━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+merge(combine_attrs='override') does not copy attrs but instead references attrs from the first object
+<!-- Please include a self-contained copy-pastable example that generates the issue if possible.
+
+Please be concise with code posted. See guidelines below on how to provide a good bug report:
+
+- Craft Minimal Bug Reports: http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports
+- Minimal Complete Verifiable Examples: https://stackoverflow.com/help/mcve
+
+Bug reports that follow these guidelines are easier to diagnose, and so are often handled much more quickly.
+-->
+
+**What happened**:
+... (65 lines hidden) ...
+matplotlib: 3.3.2
+cartopy: None
+seaborn: None
+numbagg: None
+pint: None
+setuptools: 50.3.2
+pip: 20.2.4
+conda: None
+pytest: None
+IPython: None
+sphinx: 3.3.0
+
+</details>
+
+── Step 1/30 · in 1988 · out 1530 · 85.6s ──────────────────────────────
+    print(search_code("combine_attrs == \"override\"", "xarray/core/merge.py"))
+    stdout:
+    /testbed/xarray/core/merge.py:503     elif combine_attrs == "override":
+
+━━ ✗ No patch submitted after 1 step(s) · in 1988 · out 1530 · 118.0s ━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemma-31' failed. Errors: {'openrouter': HTTPStatusError("Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401")}

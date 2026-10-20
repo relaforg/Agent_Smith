@@ -1,0 +1,28 @@
+unhandled exception during asyncio.run() shutdown
+task: <Task finished name='Task-1' coro=<run_swebench_agent() done, defined at /home/relaforg/Documents/Agent_Smith/src/agent_swebench/__main__.py:139> exception=RuntimeError("generator didn't yield")>
+Traceback (most recent call last):
+  File "/home/relaforg/Documents/Agent_Smith/src/agent_swebench/__main__.py", line 171, in run_swebench_agent
+    client = await stack.enter_async_context(
+  File "/usr/lib/python3.10/contextlib.py", line 619, in enter_async_context
+    result = await _cm_type.__aenter__(cm)
+  File "/usr/lib/python3.10/contextlib.py", line 201, in __aenter__
+    raise RuntimeError("generator didn't yield") from None
+RuntimeError: generator didn't yield
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/relaforg/Documents/Agent_Smith/src/agent_swebench/__main__.py", line 343, in <module>
+    asyncio.run(
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 636, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 603, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 1871, in _run_once
+    event_list = self._selector.select(timeout)
+  File "/usr/lib/python3.10/selectors.py", line 469, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+KeyboardInterrupt

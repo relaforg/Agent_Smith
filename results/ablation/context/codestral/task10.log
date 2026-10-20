@@ -1,0 +1,60 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 167 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find smallest power of 2 greater than or equal to n.
+
+── Step 1/10 · in 102 · out 584 · 5.3s ─────────────────────────────────
+    def next_power_of_2(n):
+        if n <= 0:
+            return 1
+        if (n & (n - 1)) == 0:
+            return n
+        power = 1
+        while power < n:
+            power <<= 1
+        return power
+    
+    # Test cases
+    assert next_power_of_2(5) == 8
+    assert next_power_of_2(17) == 32
+    Code executed with no output.
+
+── Step 2/10 · in 694 · out 241 · 1.6s ─────────────────────────────────
+    def next_power_of_2(n):
+        if n <= 0:
+            return 1
+        if (n & (n - 1)) == 0:
+            return n
+        power = 1
+        while power < n:
+            power <<= 1
+        return power
+    
+    # Test cases
+    assert next_power_of_2(5) == 8
+    assert next_power_of_2(17) == 32
+    Code executed with no output.
+↻ Same code as the previous step
+
+── Step 3/10 · in 955 · out 283 · 10.5s ────────────────────────────────
+    def next_power_of_2(n):
+        if n <= 0:
+            return 1
+        if (n & (n - 1)) == 0:
+            return n
+        power = 1
+        while power < n:
+            power <<= 1
+        return power
+    
+    # Test cases
+    assert next_power_of_2(5) == 8
+    assert next_power_of_2(17) == 32
+    Code executed with no output.
+↻ Same code as the previous step
+
+── Step 4/10 · in 1258 · out 251 · 1.8s ────────────────────────────────
+    final_answer(next_power_of_2)
+✓ final_answer submitted
+
+━━ ✓ Solved in 4 step(s) · in 3009 · out 1359 · 19.4s ━━━━━━━━━━━━━━━━━━

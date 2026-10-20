@@ -1,0 +1,39 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Non-retryable HTTP 401: {"error":{"message":"Missing Authentication header","code":401}}
+Provider 'openrouter' failed for model 'gemma-31': Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401. Checking for alternative provider hosting identical model...
+━━ MBPP task 105 · gemma-31 · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to count true booleans in the given list.
+
+── Step 1/10 · in 98 · out 56 · 66.8s ──────────────────────────────────
+    final_answer(count)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'count' is not defined. Did you mean: 'round'?
+
+── Step 2/10 · in 251 · out 114 · 47.8s ────────────────────────────────
+    final_answer(count)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'count' is not defined. Did you mean: 'round'?
+↻ Same code as the previous step
+
+── Step 3/10 · in 462 · out 201 · 46.7s ────────────────────────────────
+    final_answer(count)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'count' is not defined. Did you mean: 'round'?
+↻ Same code as the previous step
+
+━━ ✗ Not solved after 3 step(s) · in 811 · out 371 · 174.3s ━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemma-31' failed. Errors: {'openrouter': HTTPStatusError("Client error '401 Unauthorized' for url 'https://openrouter.ai/api/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401")}

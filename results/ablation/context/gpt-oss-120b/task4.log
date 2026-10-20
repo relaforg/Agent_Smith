@@ -1,0 +1,75 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 439 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to convert a list of multiple integers into a single integer.
+
+── Step 1/10 · in 179 · out 598 · 1.6s ─────────────────────────────────
+    def multiple_to_single(L):
+        """
+        Convert a list of integers into a single integer by concatenating the
+        absolute values of the elements. The sign of the resulting integer is
+        determined by the sign of the first element in the list.
+    
+        Parameters
+        ----------
+        L : list[int]
+            List of integers to be concatenated.
+    
+        Returns
+        -------
+        int
+            The concatenated integer with appropriate sign.
+        """
+        if not L:                     # handle empty list
+            return 0
+    
+        # Determine the sign from the first element
+        sign = -1 if L[0] < 0 else 1
+    
+        # Concatenate the absolute values of all elements
+        concatenated_str = "".join(str(abs(x)) for x in L)
+    
+        # Convert to integer and apply the sign
+        return sign * int(concatenated_str)
+    
+    
+    # Example test cases
+    assert multiple_to_single([-1, 2, 3, 4, 5, 6]) == -123456
+    assert multiple_to_single([10, 15, 20, 25]) == 10152025
+    Code executed with no output.
+
+── Step 2/10 · in 434 · out 297 · 0.8s ─────────────────────────────────
+    def multiple_to_single(L):
+        """
+        Convert a list of integers into a single integer by concatenating the
+        absolute values of the elements. The sign of the resulting integer is
+        determined by the sign of the first element in the list.
+    
+        Parameters
+        ----------
+        L : list[int]
+            List of integers to be concatenated.
+    
+        Returns
+        -------
+        int
+            The concatenated integer with appropriate sign.
+        """
+        if not L:                     # handle empty list
+            return 0
+    
+        # Determine the sign from the first element
+        sign = -1 if L[0] < 0 else 1
+    
+        # Concatenate the absolute values of all elements
+        concatenated_str = "".join(str(abs(x)) for x in L)
+    
+        # Convert to integer and apply the sign
+        return sign * int(concatenated_str)
+    Code executed with no output.
+
+── Step 3/10 · in 651 · out 653 · 1.5s ─────────────────────────────────
+    final_answer(multiple_to_single)
+✓ final_answer submitted
+
+━━ ✓ Solved in 3 step(s) · in 1264 · out 1548 · 4.1s ━━━━━━━━━━━━━━━━━━━

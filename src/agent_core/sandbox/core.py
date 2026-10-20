@@ -42,10 +42,6 @@ class SandboxTimeoutError(BaseException):
     pass
 
 
-class FinalAnswer(BaseException):
-    pass
-
-
 class SandboxDied(Exception):
     pass
 
@@ -100,20 +96,13 @@ class _AstGuard(ast.NodeVisitor):
             raise SyntaxError(f"Forbidden name: {node.id}")
         self.generic_visit(node)
 
-    def visit_Import(self, node):
-        for alias in node.names:
-            if not _is_authorized_import(alias.name, self.config):
-                raise SyntaxError(
-                    f"{alias.name} is not available in the sandbox")
-        self.generic_visit(node)
-
+    # Module authorization is checked at runtime by the custom __import__,
+    # so that a blocked import raises a catchable ImportError instead of
+    # rejecting the whole code block before it runs.
     def visit_ImportFrom(self, node):
         if node.level:
             raise SyntaxError("Relative imports are not available "
                               "in the sandbox")
-        if not _is_authorized_import(node.module, self.config):
-            raise SyntaxError(
-                f"{node.module} is not available in the sandbox")
         for alias in node.names:
             if alias.name == "*":
                 raise SyntaxError("Star imports are not available "
@@ -165,7 +154,9 @@ class Sandbox:
 
     def final_answer(self, answer: str) -> None:
         """Indicate the end of agentic loop"""
-        raise FinalAnswer(answer)
+        # Recorded rather than raised: the rest of the code block still runs,
+        # and _exec_code reports the answer once exec returns.
+        self._final_answer = str(answer)
 
     def _make_custom_import(self):
         def _import(name: str, globals=None, locals=None,
@@ -203,7 +194,7 @@ class Sandbox:
         builtin["__import__"] = self._make_custom_import()
         builtin["open"] = self._make_custom_open()
         for key in ["eval", "exec", "compile", "input", "breakpoint",
-                    "getattr", "globals", "vars", "dir", "help", "exit",
+                    "getattr", "globals", "vars", "help", "exit",
                     "quit", "copyright", "credits", "license"]:
             builtin.pop(key, None)
         return builtin
@@ -253,7 +244,7 @@ class Sandbox:
         memory_exceeded = False
         timeout = False
         out, err = io.StringIO(), io.StringIO()
-        final_answer = None
+        self._final_answer = None
 
         try:
             signal.setitimer(signal.ITIMER_REAL,
@@ -274,8 +265,6 @@ class Sandbox:
             error, timeout = traceback.format_exc(), True
         except (KeyboardInterrupt, SystemExit):
             error = traceback.format_exc()
-        except FinalAnswer as e:
-            final_answer = e.__str__()
         except Exception:
             error = traceback.format_exc()
         finally:
@@ -286,7 +275,7 @@ class Sandbox:
             error=error,
             memory_exceeded=memory_exceeded,
             timed_out=timeout,
-            final_answer=final_answer
+            final_answer=self._final_answer
         )
 
     def _serve(self) -> None:

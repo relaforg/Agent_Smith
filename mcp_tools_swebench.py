@@ -1,0 +1,328 @@
+import os
+import io
+import sys
+import json
+import shlex
+import shutil
+import atexit
+import signal
+import tarfile
+import tempfile
+import itertools
+import importlib
+import subprocess
+import contextlib
+import docker
+from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
+from typing import List, Optional, Tuple
+from pathlib import Path
+
+
+LABEL = "swebench-mcp"
+LABELS = {LABEL: "swebench", f"{LABEL}.pid": str(os.getpid())}
+
+DOCKER_IMAGE = os.environ.get("DOCKER_IMAGE", "python:3.10")
+TESTBED_PATH = os.environ.get("TESTBED_PATH")
+EVAL_SCRIPT = os.environ.get("EVAL_SCRIPT")
+# Where SWE-bench images check out the repository.
+DOCKER_TESTBED = "/testbed"
+SYMBOL_TIMEOUT = "30"
+
+mcp = FastMCP("swebench_mcp")
+
+
+def _dec(raw: Optional[bytes]) -> str:
+    return raw.decode(errors="replace") if raw else ""
+
+
+def _vendored_packages() -> List[Path]:
+    """The pure-Python packages refs.py needs, taken from our own venv.
+
+    The container has no network, so jedi cannot be pip-installed in it; we
+    copy it in instead. Missing on the host is not fatal: refs.py falls back
+    to its AST engine.
+    """
+    packages = []
+    for module in ("jedi", "parso"):
+        with contextlib.suppress(ImportError):
+            packages.append(
+                Path(importlib.import_module(module).__file__).parent)
+    return packages
+
+
+class DockerBackend:
+    """Runs every command inside a throwaway container."""
+
+    def __init__(self, image: str) -> None:
+        self.python = "python"
+        self.scratch = "/"
+        self.refs_script = "/refs.py"
+        self.libs = "/tmp/mcp-libs"
+        self.client = docker.from_env()
+        self.container = self.client.containers.run(
+            image=image, command="tail -f /dev/null", detach=True,
+            network_disabled=True, labels=LABELS
+        )
+        try:
+            exit_code, _, _ = self.exec(["test", "-d", DOCKER_TESTBED])
+            self.root = DOCKER_TESTBED if exit_code == 0 else "/"
+            self.put_file(self.refs_script,
+                          Path(__file__).with_name("refs.py").read_text())
+            self.put_tree(self.libs, _vendored_packages())
+        except Exception:
+            self.close()
+            raise
+
+    def resolve(self, path: str) -> str:
+        return path
+
+    def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
+        res = self.container.exec_run(cmd, demux=True, workdir=workdir)
+        stdout, stderr = res.output
+        return res.exit_code, _dec(stdout), _dec(stderr)
+
+    def put_file(self, path: str, content: str) -> None:
+        data, buf = content.encode(), io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w") as tar:
+            info = tarfile.TarInfo(name=os.path.basename(path))
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+        buf.seek(0)
+        self.container.put_archive(os.path.dirname(path) or "/", buf)
+
+    @staticmethod
+    def _sanitize(info: tarfile.TarInfo) -> Optional[tarfile.TarInfo]:
+        if "__pycache__" in info.name:
+            return None
+        info.uid = info.gid = 0
+        info.uname = info.gname = "root"
+        return info
+
+    def put_tree(self, dest: str, sources: List[Path]) -> None:
+        if not sources:
+            return
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w") as tar:
+            for src in sources:
+                tar.add(src, arcname=f"{os.path.basename(dest)}/{src.name}",
+                        filter=self._sanitize)
+        buf.seek(0)
+        self.container.put_archive(os.path.dirname(dest) or "/", buf)
+
+    def close(self) -> None:
+        with contextlib.suppress(docker.errors.APIError):
+            self.container.remove(force=True)
+
+
+class LocalBackend:
+    """Runs every command directly in TESTBED_PATH, no container involved.
+
+    Commands run with the testbed as working directory, so relative paths
+    resolve against it. Absolute paths under /testbed are mapped onto
+    TESTBED_PATH, so callers can use the container's paths with both backends;
+    other absolute paths are left untouched.
+    """
+
+    def __init__(self, path: str) -> None:
+        self.python = sys.executable
+        self.root = str(Path(path).resolve())
+        self.scratch = tempfile.mkdtemp(prefix="swebench-mcp-")
+        self.refs_script = str(Path(__file__).with_name("refs.py"))
+        self.libs = None
+
+    def resolve(self, path: str) -> str:
+        if path == DOCKER_TESTBED or path.startswith(DOCKER_TESTBED + "/"):
+            return self.root + path[len(DOCKER_TESTBED):]
+        return path
+
+    def exec(self, cmd, workdir: Optional[str] = None) -> Tuple[int, str, str]:
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
+        cmd = [self.resolve(arg) for arg in cmd]
+        # join() keeps an absolute workdir as is and anchors a relative one
+        # to the testbed instead of the server's own working directory.
+        cwd = os.path.join(self.root, self.resolve(workdir)) if workdir \
+            else self.root
+        try:
+            res = subprocess.run(cmd, cwd=cwd,
+                                 capture_output=True, text=True,
+                                 errors="replace")
+        except OSError as err:
+            return 127, "", str(err)
+        return res.returncode, res.stdout, res.stderr
+
+    def put_file(self, path: str, content: str) -> None:
+        Path(os.path.join(self.root, self.resolve(path))).write_text(content)
+
+    def close(self) -> None:
+        shutil.rmtree(self.scratch, ignore_errors=True)
+
+
+backend = LocalBackend(TESTBED_PATH) if TESTBED_PATH \
+    else DockerBackend(DOCKER_IMAGE)
+
+atexit.register(backend.close)
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
+signal.signal(signal.SIGHUP, lambda *_: sys.exit(0))
+
+
+@mcp.tool()
+def read_file(filepath: str, start_line: int, end_line: int) -> str:
+    """Read the content of a file with line numbers."""
+    if start_line > end_line:
+        raise ToolError(f"Invalid range: start_line ({start_line}) "
+                        f"> end_line ({end_line})")
+    exit_code, stdout, stderr = backend.exec(
+        ["sed", "-n", f"{start_line},{end_line}p", filepath])
+    if exit_code != 0:
+        raise ToolError(stderr.strip() or f"cannot read {filepath}")
+    return "\n".join([
+        f"{i + start_line}: {line}"
+        for (i, line) in enumerate(stdout.splitlines())
+    ])
+
+
+@mcp.tool()
+def edit_file(filepath: str, old_str: str, new_str: str):
+    """Replace an exact string in a file with a new string."""
+    exit_code, content, stderr = backend.exec(["cat", filepath])
+    if exit_code != 0:
+        raise ToolError(stderr.strip() or f"cannot read {filepath}")
+    if old_str not in content:
+        raise ToolError(f"old_str not found in {filepath}")
+    backend.put_file(filepath, content.replace(old_str, new_str))
+
+
+@mcp.tool()
+def list_files(directory: str, pattern: str) -> List[str]:
+    """List the names of the files in a directory matching a given pattern."""
+    exit_code, stdout, stderr = backend.exec(["find", directory, "-maxdepth",
+                                              "1", "-name", pattern,
+                                              "-type", "f"])
+    if exit_code != 0 and not stdout:
+        raise ToolError(stderr.strip() or f"cannot list {directory}")
+    # Names, not paths: the caller already knows the directory, and on the
+    # local backend find prints host paths instead of /testbed ones.
+    return [os.path.basename(path) for path in stdout.splitlines()]
+
+
+def _as_rows(grep_output: str) -> str:
+    rows = (row.split(":", 2) for row in grep_output.splitlines())
+    return "\n".join(f"{path}:{line} {text}"
+                     for path, line, text in (r for r in rows if len(r) == 3))
+
+
+def _symbols(**payload) -> str:
+    """Run refs.py inside the backend and hand back its rows."""
+    payload |= {"root": backend.root, "libs": backend.libs}
+    # refs.py opens filepath itself, outside of backend.exec.
+    if "filepath" in payload:
+        payload["filepath"] = backend.resolve(payload["filepath"])
+    path = os.path.join(backend.scratch, "payload.json")
+    backend.put_file(path, json.dumps(payload))
+    _, stdout, stderr = backend.exec(["timeout", "-s", "KILL", SYMBOL_TIMEOUT,
+                                      backend.python, backend.refs_script,
+                                      path])
+    return stdout + stderr
+
+
+def _has_wildcard(part: str) -> bool:
+    return any(c in part for c in "*?[")
+
+
+def _split_file_pattern(file_pattern: str) -> Tuple[str, Optional[str]]:
+    """Split a path glob such as "src/**/*.py" into the path grep should walk
+    ("src") and the glob --include matches file names against ("*.py").
+
+    grep's --include only ever sees file names, so directories have to be
+    selected through the search path instead. Directory components from the
+    first wildcard on are dropped: grep -r already recurses into all of them.
+    """
+    if not _has_wildcard(file_pattern):
+        return file_pattern, None
+    head, name = os.path.split(file_pattern)
+    fixed = itertools.takewhile(lambda part: not _has_wildcard(part),
+                                head.split("/"))
+    return "/".join(fixed), name
+
+
+@mcp.tool()
+def search_code(pattern: str, file_pattern: str) -> str:
+    """Perform a grep-like search in the codebase."""
+    directory, name = _split_file_pattern(file_pattern)
+    # -H: keep the file name even when file_pattern points at a single file.
+    cmd = ["grep", "-rnIH", "-e", pattern]
+    if name:
+        cmd.append(f"--include={name}")
+    # An absolute file_pattern or a ".." would make join() escape the root.
+    path = os.path.normpath(os.path.join(backend.root, directory))
+    if os.path.commonpath([backend.root, path]) != backend.root:
+        raise ToolError(
+            f"{file_pattern} is outside the codebase ({backend.root})")
+    _, stdout, stderr = backend.exec(cmd + ["--", path])
+    # grep exits with 2 as soon as one file is unreadable, even when it found
+    # matches elsewhere: only surface stderr when there is nothing else.
+    rows = _as_rows(stdout)
+    if not rows and stderr.strip():
+        raise ToolError(stderr.strip())
+    return rows or "No match"
+
+
+@mcp.tool()
+def search_function_or_class_definition_in_code(name: str) -> str:
+    """Find the definition of a function or a class."""
+    return _symbols(mode="definition", name=name)
+
+
+@mcp.tool()
+def find_references(name: str, filepath: str, line: int) -> str:
+    """Find all usages of a symbol (function or class)."""
+    return _symbols(mode="references", name=name, filepath=filepath, line=line)
+
+
+@mcp.tool()
+def run_tests() -> tuple[int, str]:
+    """Execute the evaluation script."""
+    if not EVAL_SCRIPT:
+        raise ToolError("No evaluation script configured")
+    # EVAL_SCRIPT holds the script itself, not a path: hence `bash -c`.
+    exit, stdout, _ = backend.exec(["bash", "-c", EVAL_SCRIPT])
+    return (exit, stdout)
+
+
+@mcp.tool()
+def get_patch():
+    """Retrieve the unified git diff of all changes made to the repository,
+    depending on the implementation"""
+    backend.exec(["git", "-c", "core.fileMode=false", "add", "-N", "."])
+    _, stdout, _ = backend.exec(["git", "-c", "core.fileMode=false", "diff"])
+    return stdout
+
+
+@mcp.tool()
+def run_command(command, workdir) -> str:
+    """Execute a shell command in the specified working directory.
+    Returns the command’s stdout, stderr, and exit code."""
+    exit_code, stdout, stderr = backend.exec(command, workdir=workdir)
+    return (f"exit_code: {exit_code}\n"
+            f"--- stdout ---\n{stdout}"
+            f"--- stderr ---\n{stderr}")
+
+
+if __name__ == "__main__":
+    # print(list_files("/", "*"))
+    # print(run_command("pwd", "/test"))
+    # print(read_file("/miniconda.sh", 10, 10))
+    # print(run_command("touch /testbed/test.tmp", "/"))
+    # edit_file("/test", "Hello", "Goodbye")
+    # print(run_command("cat test", "/"))
+    # print(backend.root)
+    # print(search_code("def", "src/**/*.py"))
+    # print(search_function_or_class_definition_in_code("test"))
+    # print(find_references("enclosing_scope", "/refs.py", 48))
+    # print(run_tests())
+    # print(get_patch())
+    # mcp.run(transport="streamable-http")
+    mcp.run()

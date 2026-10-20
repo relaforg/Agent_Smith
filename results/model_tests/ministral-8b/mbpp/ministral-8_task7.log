@@ -1,0 +1,137 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · ministral-8 · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 574 · out 66 · 1.0s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple(sorted(t[1] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 2/10 · in 648 · out 62 · 0.6s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple(t) for group in groups.values() for t in group]
+    '''
+    Code executed with no output.
+
+── Step 3/10 · in 718 · out 62 · 0.9s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple(sorted(t[1:])) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 4/10 · in 788 · out 71 · 0.8s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple([t[0]] + sorted(t[1:] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 5/10 · in 867 · out 72 · 0.8s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple(t[0]) + tuple(sorted(t[1] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 6/10 · in 947 · out 94 · 0.9s ──────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        result = []
+        for group in groups.values():
+            first = group[0]
+            rest = sorted(t[1] for t in group)
+            result.append((first[0],) + tuple(rest))
+        return result
+    '''
+    Code executed with no output.
+
+── Step 7/10 · in 1049 · out 71 · 0.7s ─────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple([t[0]] + sorted(t[1] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 8/10 · in 1128 · out 71 · 0.7s ─────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple([t[0]] + sorted(t[1:] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 9/10 · in 1207 · out 71 · 0.8s ─────────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        return [tuple([t[0]] + sorted(t[1] for t in group)) for group in groups.values()]
+    '''
+    Code executed with no output.
+
+── Step 10/10 · in 1286 · out 305 · 2.8s ───────────────────────────────
+    code = r'''
+    from collections import defaultdict
+    
+    def group_tuples(Input):
+        groups = defaultdict(list)
+        for t in Input:
+            groups[t[0]].append(t)
+        result = []
+        for group in groups.values():
+            first = group[0]
+            sorted_rest = sorted(t[1:] for t in group)
+            result.append((first[0],) + tuple(sorted_rest))
+        return result
+    '''
+    Code executed with no output.
+
+━━ ✗ Not solved after 10 step(s) · in 9212 · out 945 · 10.0s ━━━━━━━━━━━
+Exhausted iterations without submitting a passing solution via final_answer().

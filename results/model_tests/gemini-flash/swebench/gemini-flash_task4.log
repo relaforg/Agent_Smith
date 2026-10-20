@@ -1,0 +1,24 @@
+Provider 'google' failed for model 'gemini-flash': All retries and API keys exhausted for model 'gemini-3.8-flash'.. Checking for alternative provider hosting identical model...
+━━ SWE-bench sympy__sympy-18189 · sympy/sympy · gemini-flash ━━━━━━━━━━━
+tools: read_file, edit_file, list_files, search_code, search_function_or_class_definition_in_code, find_references, run_tests, get_patch, run_command
+
+diophantine: incomplete results depending on syms order with permute=True
+```
+In [10]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(m,n), permute=True)
+Out[10]: {(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}
+
+In [11]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n,m), permute=True)
+Out[11]: {(3, 2)}
+```
+
+diophantine: incomplete results depending on syms order with permute=True
+```
+In [10]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(m,n), permute=True)
+Out[10]: {(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}
+
+In [11]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n,m), permute=True)
+Out[11]: {(3, 2)}
+```
+
+━━ ✗ No patch submitted after 0 step(s) · in 0 · out 0 · 208.3s ━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gemini-flash' failed. Errors: {'google': RuntimeError("All retries and API keys exhausted for model 'gemini-3.8-flash'.")}

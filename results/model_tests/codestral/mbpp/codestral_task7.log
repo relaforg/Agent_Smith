@@ -1,0 +1,29 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 574 · out 131 · 2.1s ─────────────────────────────────
+    code = r'''
+    def group_tuples(Input):
+        if not Input:
+            return []
+        groups = []
+        current_group = [Input[0][0]]
+        for t in Input:
+            if t[0] == current_group[0]:
+                current_group.extend(t[1:])
+            else:
+                groups.append(tuple(current_group))
+                current_group = [t[0]]
+                current_group.extend(t[1:])
+        groups.append(tuple(current_group))
+        return groups
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 574 · out 131 · 2.3s ━━━━━━━━━━━━━━━━━━━━━

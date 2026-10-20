@@ -1,0 +1,15 @@
+━━ MBPP task 287 · gemini-flash · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find the sum of squares of first n even natural numbers.
+
+── Step 1/10 · in 549 · out 75 · 16.2s ─────────────────────────────────
+    code = r'''
+    def square_Sum(n):
+        return sum((2 * i) ** 2 for i in range(1, n + 1))
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 549 · out 75 · 20.0s ━━━━━━━━━━━━━━━━━━━━━

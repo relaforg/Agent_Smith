@@ -1,0 +1,16 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 287 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a python function to find the sum of squares of first n even natural numbers.
+
+── Step 1/10 · in 96 · out 663 · 3.9s ──────────────────────────────────
+    def square_Sum(n):
+        sum_squares = n * (n + 1) * (2 * n + 1) // 6
+        return 4 * sum_squares
+    Code executed with no output.
+
+── Step 2/10 · in 767 · out 367 · 3.9s ─────────────────────────────────
+    final_answer(square_Sum)
+✓ final_answer submitted
+
+━━ ✓ Solved in 2 step(s) · in 863 · out 1030 · 8.0s ━━━━━━━━━━━━━━━━━━━━

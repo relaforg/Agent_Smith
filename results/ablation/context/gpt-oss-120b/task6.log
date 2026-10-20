@@ -1,0 +1,27 @@
+Cannot read termcap database;
+using dumb terminal settings.
+Provider 'groq' failed for model 'gpt-oss-120b': All API keys exhausted. Checking for alternative provider hosting identical model...
+━━ MBPP task 431 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function that takes two lists and returns true if they have at least one common element.
+
+── Step 1/10 · in 193 · out 291 · 0.9s ─────────────────────────────────
+    final_answer(common_element)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'common_element' is not defined
+
+── Step 2/10 · in 436 · out 425 · 1.2s ─────────────────────────────────
+    final_answer(common_element)
+    error:
+    Traceback (most recent call last):
+      File "/home/nahecre/Documents/M5/agentsmith/src/agent_core/sandbox/core.py", line 259, in _exec_code
+        exec(bytecode, self.namespace)
+      File "<sandbox>", line 1, in <module>
+    NameError: name 'common_element' is not defined
+↻ Same code as the previous step
+
+━━ ✗ Not solved after 2 step(s) · in 629 · out 716 · 2.5s ━━━━━━━━━━━━━━
+LLM Generation Error: Strict Routing Failure: All providers supporting model 'gpt-oss-120b' failed. Errors: {'groq': RuntimeError('All API keys exhausted')}

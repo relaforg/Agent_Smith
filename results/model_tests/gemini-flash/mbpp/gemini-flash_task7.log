@@ -1,0 +1,21 @@
+━━ MBPP task 417 · gemini-flash · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 603 · out 116 · 9.7s ─────────────────────────────────
+    code = r'''
+    def group_tuples(Input):
+        grouped = {}
+        for t in Input:
+            key = t[0]
+            if key not in grouped:
+                grouped[key] = [key]
+            grouped[key].extend(t[1:])
+        return [tuple(v) for v in grouped.values()]
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 603 · out 116 · 231.9s ━━━━━━━━━━━━━━━━━━━

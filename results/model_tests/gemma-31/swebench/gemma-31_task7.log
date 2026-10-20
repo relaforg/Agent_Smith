@@ -1,0 +1,36 @@
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/relaforg/Documents/Agent_Smith/src/agent_swebench/__main__.py", line 13, in <module>
+    from mcp import StdioServerParameters, stdio_client
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/__init__.py", line 1, in <module>
+    from .client.session import ClientSession
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/client/session.py", line 13, in <module>
+    from mcp.client.experimental.task_handlers import ExperimentalTaskHandlers
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/client/experimental/task_handlers.py", line 21, in <module>
+    from mcp.shared.context import RequestContext
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/shared/context.py", line 11, in <module>
+    from mcp.shared.session import BaseSession
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/mcp/shared/session.py", line 9, in <module>
+    import httpx
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/__init__.py", line 2, in <module>
+    from ._api import *
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/_api.py", line 6, in <module>
+    from ._client import Client
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/_client.py", line 13, in <module>
+    from ._auth import Auth, BasicAuth, FunctionAuth
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/_auth.py", line 12, in <module>
+    from ._models import Cookies, Request, Response
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/_models.py", line 48, in <module>
+    from ._urls import URL
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/httpx/_urls.py", line 6, in <module>
+    import idna
+  File "/home/relaforg/Documents/Agent_Smith/.venv/lib/python3.10/site-packages/idna/__init__.py", line 1, in <module>
+    from .core import (
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1002, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 945, in _find_spec
+  File "<frozen importlib._bootstrap_external>", line 1442, in find_spec
+KeyboardInterrupt

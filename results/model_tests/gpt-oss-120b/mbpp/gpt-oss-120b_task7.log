@@ -1,0 +1,27 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · gpt-oss-120b · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 627 · out 562 · 2.3s ─────────────────────────────────
+    code = r'''
+    from collections import OrderedDict
+    def group_tuples(Input):
+        groups = OrderedDict()
+        for t in Input:
+            if not t:
+                continue
+            key = t[0]
+            rest = t[1:]
+            if key not in groups:
+                groups[key] = []
+            groups[key].extend(rest)
+        return [tuple([k] + v) for k, v in groups.items()]
+    '''
+    result = run_tests(code, TESTS)
+    print(result["output"])
+    if result["success"]:
+        final_answer(code)
+✓ final_answer submitted
+
+━━ ✓ Solved in 1 step(s) · in 627 · out 562 · 2.5s ━━━━━━━━━━━━━━━━━━━━━

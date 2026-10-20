@@ -1,0 +1,195 @@
+Cannot read termcap database;
+using dumb terminal settings.
+━━ MBPP task 417 · codestral · run_tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write a function to find common first element in given list of tuple.
+
+── Step 1/10 · in 155 · out 599 · 4.3s ─────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    Code executed with no output.
+
+── Step 2/10 · in 762 · out 425 · 7.0s ─────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+
+── Step 3/10 · in 1209 · out 430 · 2.7s ────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+↻ Same code as the previous step
+
+── Step 4/10 · in 1661 · out 413 · 2.8s ────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+↻ Same code as the previous step
+
+── Step 5/10 · in 2096 · out 423 · 2.8s ────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+↻ Same code as the previous step
+
+── Step 6/10 · in 2541 · out 445 · 4.9s ────────────────────────────────
+    def group_tuples(Input):
+        groups = {}
+        for t in Input:
+            first, second = t
+            if first in groups:
+                groups[first].append(second)
+            else:
+                groups[first] = [second]
+    
+        result = []
+        for key in groups:
+            new_tuple = (key,) + tuple(groups[key])
+            result.append(new_tuple)
+    
+        return result
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+↻ Same code as the previous step
+
+── Step 7/10 · in 3008 · out 300 · 3.1s ────────────────────────────────
+    def group_tuples(Input):
+        from collections import defaultdict
+    
+        groups = defaultdict(list)
+        for first, second in Input:
+            groups[first].append(second)
+    
+        return [(key, *values) for key, values in groups.items()]
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+
+── Step 8/10 · in 3330 · out 335 · 2.5s ────────────────────────────────
+    def group_tuples(Input):
+        from collections import defaultdict
+    
+        groups = defaultdict(list)
+        for first, second in Input:
+            groups[first].append(second)
+    
+        return [(key, *values) for key, values in groups.items()]
+    
+    # Test cases
+    assert group_tuples([('a', 'b'), ('a', 'c'), ('d', 'e')]) == [('a', 'b', 'c'), ('d', 'e')]
+    assert group_tuples([('f', 'g'), ('f', 'g'), ('h', 'i')]) == [('f', 'g', 'g'), ('h', 'i')]
+    assert group_tuples([]) == []  # Edge case: empty input
+    assert group_tuples([('x', 'y')]) == [('x', 'y')]  # Edge case: single tuple
+    
+    print("All test cases passed!")
+    stdout:
+    All test cases passed!
+
+── Step 9/10 · in 3687 · out 341 · 2.6s ────────────────────────────────
+    final_answer(group_tuples)
+✓ final_answer submitted
+
+━━ ✓ Solved in 9 step(s) · in 18449 · out 3711 · 33.0s ━━━━━━━━━━━━━━━━━

@@ -4,7 +4,7 @@ import time
 
 import httpx
 
-from src.agent_core.models import BaseProvider, LLMAnswer, Message
+from agent_core.models import BaseProvider, LLMAnswer, Message
 
 
 class GroqProvider(BaseProvider):
@@ -23,17 +23,10 @@ class GroqProvider(BaseProvider):
             "gpt-oss-120b": "openai/gpt-oss-120b",
             "gpt-oss-20b": "openai/gpt-oss-20b",
             "qwen-3.8-27b": "qwen/qwen3.8-27b",
-            "qwen-3.6-27b": "qwen/qwen3.6-27b",
             "allam-7b": "allam-2-7b",
         }
 
-        self.SUPPORTED_MODELS: set[str] = {
-            "openai/gpt-oss-120b",
-            "openai/gpt-oss-20b",
-            "qwen/qwen3.8-27b",
-            "qwen/qwen3.6-27b",
-            "allam-2-7b",
-        }
+        self.SUPPORTED_MODELS: set[str] = set(self.MODEL_MAP.keys())
 
     @property
     def name(self) -> str:
@@ -100,6 +93,11 @@ class GroqProvider(BaseProvider):
 
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429:
+                    try:
+                        wait = float(e.response.headers.get("retry-after", ""))
+                    except ValueError:
+                        wait = 2 ** min(i, 5)
+                    time.sleep(min(wait, 60) + 0.5)
                     self.next_key()
                     continue
                 else:

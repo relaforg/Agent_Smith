@@ -2,6 +2,10 @@ __pycache__
 .env
 tmp
 .agent_smith_history
-moulinette
 swebench_task.json
 .git-backup
+task.json
+solution.json
+exams
+evaluations
+fuse_results.py
